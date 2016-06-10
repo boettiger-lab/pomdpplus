@@ -1,8 +1,12 @@
 ---
 title: "POMDP Planning and Learning in Uncertain Systems"
 author: Carl Boettiger and Milad Memarzadeh
-output: github_document
+output: 
+  github_document:
+    html_preview: false
 ---
+
+[![Build Status](https://drone.carlboettiger.info/api/badges/boettiger-lab/pomdpplus/status.svg)](https://drone.carlboettiger.info/boettiger-lab/pomdpplus)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
