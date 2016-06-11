@@ -5,7 +5,17 @@ normalize <- function(A){
   A / s
   
 }
+##################################################
 
+size <- function(x, d=NULL){
+    if(is.array(x)){
+        if(is.null(d))
+        return(dim(x))
+        else
+        return(dim(x)[d])
+    } else
+    return(length(x))
+}
 
 ##################################################
 round_Milad <- function(P){
@@ -54,7 +64,7 @@ Expectation_pl <- function(initial,alpha_vector,alpha_action,Num_a,w){
       }
     }
   }
-  V_action = zeros(1,Num_a)
+  V_action = array(0, dim = Num_a)
   for(i in 1:Num_a){
     summ = 0
     for(j in 1:size(V)){
@@ -81,17 +91,17 @@ Expectation_pl <- function(initial,alpha_vector,alpha_action,Num_a,w){
 fakemodel <- function(T,O,s_0,act,R,Num_s,Num_z){
   t = length(act)
   # transition at each time step
-  v_s = zeros(Num_s,1)
+  v_s = array(0, dim = Num_s)
   # emission at each time step
-  v_z = zeros(Num_z,1)
+  v_z = array(0, dim = Num_z)
   
   # outputs
   # states
-  v_state = zeros(t,1)
+  v_state = array(0, dim = t)
   # observation
-  v_obs = zeros(t,1)
+  v_obs = array(0, dim = t)
   # reward 
-  v_rew = zeros(t,1)
+  v_rew = array(0, dim = t)
   
   s_t1 = s_0
   
@@ -100,12 +110,12 @@ fakemodel <- function(T,O,s_0,act,R,Num_s,Num_z){
     v_s = T[s_t1, , a]
     
     # new state
-    s_t2 = discrete_sample(v_s,1)
+    s_t2 = discrete(v_s,1)
     
     v_z = O[s_t2, , a]
     
     # new observation
-    z_t2 = discrete_sample(v_z,1)
+    z_t2 = discrete(v_z,1)
     
     # recording
     v_state[k] = s_t2
@@ -128,7 +138,7 @@ update_belief <- function(b_0,T,O,a,z){
 ##################################################
 
 ff <- function(initial,T,O,a,z,P_0){
-  b = zeros(length(a)+1,size(T,1))
+  b = array(0, dim = c((length(a)+1),size(T,1)))
   b[1,] = initial
   for(i in 1:length(a)){
     b[i+1,] = (b[i,] %*% T[,,a[i]]*t(O[,z[i],a[i]]))
@@ -145,7 +155,7 @@ ff <- function(initial,T,O,a,z,P_0){
 ##################################################
 
 discrete <- function(p,n){
-  s = zeros(1,n)
+  s = array(0, dim = n)
   for (i in 1:n){
     s[i] = sum(cumsum(p)<runif(1))+1
   }
@@ -155,7 +165,6 @@ discrete <- function(p,n){
 ##################################################
 
 Interp_MM = function(initial, alpha, alpha_action){
-    
     ## Compute dot product with initial
     a <- alpha %>% map_dbl(function(x) initial %*% matrix(x, ncol=1))
     

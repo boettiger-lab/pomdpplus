@@ -9,7 +9,7 @@
 
 
 
-init_models <- function(T,O,R,GAMMA,Num_model,init)
+init_models <- function(T,O,R,GAMMA,Num_model = length(T),init) {
 Num_s = dim(T[[1]])[1]
 Num_a = dim(T[[1]])[3]
 av = vector('list',Num_model)
@@ -26,3 +26,5 @@ for(i in 1:Num_model){
 }
 
 output = list(av,aa)
+
+}

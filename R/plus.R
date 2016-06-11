@@ -13,14 +13,17 @@
 
 
 
-plus <- function(input,t = 100, Num_sim = 100, n_true, n_sample = 5, initial, P = (ones(1,length(T)) / length(T))){
+plus <- function(input,t = 100, Num_sim = 100, n_true, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
+                                                                                  
 
 devtools::load_all()
 source("L_fun.R")
 source("init_models.R")
+source("writepomdpx_POMDP.R")
 source("run_sim.R")
-library(purrr)
-  
+library("purrr")
+library("stats")
+library("xml2")
 # extracting model parameters from input
 T = input[[1]]
 O = input[[2]]

@@ -29,19 +29,19 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,l
   Num_z = dim(O_star)[2]
   Num_a = dim(T_star)[3]
   # sequence of states
-  state_seq_mdp_star = zeros(Num_sim,t+1)
-  state_seq_mdp_pl = zeros(Num_sim,t+1)
+  state_seq_mdp_star = array(0, dim = c(Num_sim,t+1))
+  state_seq_mdp_pl = array(0, dim = c(Num_sim,t+1))
   
   # true model sequence of act, obs, rew, and val
-  history_star_act = zeros(Num_sim,t+1)
-  history_star_rew = zeros(Num_sim,t+1)
-  history_star_obs = zeros(Num_sim,t+1)
+  history_star_act = array(0, dim = c(Num_sim,t+1))
+  history_star_rew = array(0, dim = c(Num_sim,t+1))
+  history_star_obs = array(0, dim = c(Num_sim,t+1))
   # PLUS model sequence of act, obs, rew, and val
-  history_pl_act = zeros(Num_sim,t+1)
-  history_pl_rew = zeros(Num_sim,t+1)
-  history_pl_obs = zeros(Num_sim,t+1)
+  history_pl_act = array(0, dim = c(Num_sim,t+1))
+  history_pl_rew = array(0, dim = c(Num_sim,t+1))
+  history_pl_obs = array(0, dim = c(Num_sim,t+1))
   # belief of true model
-  b_star = zeros(Num_sim,t+1,Num_s)
+  b_star = array(0, dim = c(Num_sim,t+1,Num_s))
   # belief of the plus method
   b_pl = vector('list',N)
   for(i in 1:N){
@@ -49,7 +49,7 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,l
   }
   
   # track of posterior probability of candidate models over time
-  PP_pl  = zeros(Num_sim,t+1,N)           
+  PP_pl  = array(0, dim = c(Num_sim,t+1,N))           
 
   # let's start the simulations
   for(m in 1:Num_sim){
@@ -67,7 +67,7 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,l
     aa_sam = vector('list',n_sample)
     av_sam = vector('list',n_sample)
     T_sam = vector('list',n_sample)
-    belief = zeros(n_sample,Num_s)
+    belief = array(0, dim = c(n_sample,Num_s))
     for(i in 1:n_sample){
       T_sam[[i]] = T[[ind_sam[i]]]
       aa_sam[[i]] = aa[[ind_sam[i]]]
