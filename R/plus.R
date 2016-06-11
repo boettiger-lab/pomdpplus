@@ -35,7 +35,7 @@ N = length(T)            # Number of candidate models
 
 ######################################################################################
 # initializing models for each candidate
-out1 <- init_models(T,O,R,GAMMA,Num_model,initial)
+out1 <- init_models(T,O,R,GAMMA,N,initial)
 
 av = out1[[1]]
 aa = out1[[2]]
