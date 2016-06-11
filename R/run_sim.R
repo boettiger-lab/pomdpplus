@@ -1,3 +1,19 @@
+### INPUTS
+
+# T: list of transition functions for all candidate models
+# O: list of emission functions for all candidate models
+# R: matrix of reward function
+# GAMMA: discount factor
+# av: list of alpha vectors for all candidate models
+# aa: list of actions corresponding to alpha vectors for all candidate models
+# n: index of the true model
+# Num_sim: number of simulation replicates
+# t: time horizon of the simulaitons
+# N: number of candidate models
+# init: initial belief
+# n_sample: number of samples used for planning
+# P: prior distribution over models
+
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,length(T)) / length(T))){
   
   # initial state

@@ -1,3 +1,14 @@
+#### INPUTS
+
+# T: list of transition functions for all candidate models
+# O: list of emission functions for all candidate models
+# R: matrix of reward function
+# GAMMA: discount factor
+# Num_model: number of candidate models
+# init: initial belief
+
+
+
 init_models <- function(T,O,R,GAMMA,Num_model,init)
 Num_s = dim(T[[1]])[1]
 Num_a = dim(T[[1]])[3]
