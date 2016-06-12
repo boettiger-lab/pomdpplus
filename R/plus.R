@@ -21,9 +21,7 @@ source("L_fun.R")
 source("init_models.R")
 source("writepomdpx_POMDP.R")
 source("run_sim.R")
-library("purrr")
-library("stats")
-library("xml2")
+
 # extracting model parameters from input
 T = input[[1]]
 O = input[[2]]
