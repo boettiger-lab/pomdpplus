@@ -13,5 +13,8 @@ Encoding: UTF-8
 Suggests:
     testthat
 Imports:
-    appl
+    appl,
+    xml2,
+    purrr,
+    stats
 RoxygenNote: 5.0.1
