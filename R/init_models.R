@@ -1,11 +1,13 @@
-#### INPUTS
-
-# T: list of transition functions for all candidate models
-# O: list of emission functions for all candidate models
-# R: matrix of reward function
-# GAMMA: discount factor
-# Num_model: number of candidate models
-# init: initial belief
+#' function for generating approimation of value function for each candidate model POMDP
+#'
+#' @param T: list of transition probabilities matrices for all candidate models; length = Num_model
+#' @param O: list of emission probabilities matrices for all candidate models; length = Num_model
+#' @param R: matrix of reward function
+#' @param GAMMA: discount factor
+#' @param Num_model: number of candidate models
+#' @param init: initial belief over the states
+#' @return av: list of alpha vectors for all candidate models; length = Num_Model
+#' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 
 
 

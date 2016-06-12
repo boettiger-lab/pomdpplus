@@ -1,20 +1,30 @@
-### INPUTS
+#' function for running forward simulations for planning and learning under model uncertainty
+#'
+#' @param T: list of transition probabilities matrices for all candidate models; length = Num_model
+#' @param O: list of emission probabilities matrices for all candidate models; length = Num_model
+#' @param R: matrix of reward function
+#' @param GAMMA: discount factor
+#' @param av: list of alpha vectors for all candidate models; length = Num_Model
+#' @param aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
+#' @param n: index of the true model
+#' @param Num_sim: number of simulation replicates; default = 100
+#' @param t: time horizon of the simulaitons; default = 100
+#' @param N: number of candidate models
+#' @param init: initial belief of the states
+#' @param n_sample: number of samples used for planning; default = 5
+#' @param P: prior probability of the models ; default is flat prior
+#' @return history_star_rew: history of rewards for the true model; dim = Num_sim \times t
+#' @return history_star_act: history of actions for the true model; dim = Num_sim \times t
+#' @return history_pl_rew: history of rewards for the plus model; dim = Num_sim \times t
+#' @return history_pl_act: history of actions for the plus model; dim = Num_sim \times t
+#' @return state_seq_mdp_pl: hidden state sequence of the plus model; dim = Num_sim \times t
+#' @return state_seq_mdp_star: hidden state sequence of the true model; dim = Num_sim \times t
+#' @return PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim \times t \times Num_model
+#' @return av: list of alpha vectors for all candidate models; length = Num_Model
+#' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 
-# T: list of transition functions for all candidate models
-# O: list of emission functions for all candidate models
-# R: matrix of reward function
-# GAMMA: discount factor
-# av: list of alpha vectors for all candidate models
-# aa: list of actions corresponding to alpha vectors for all candidate models
-# n: index of the true model
-# Num_sim: number of simulation replicates
-# t: time horizon of the simulaitons
-# N: number of candidate models
-# init: initial belief
-# n_sample: number of samples used for planning
-# P: prior distribution over models
 
-run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,length(T)) / length(T))){
+run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim = 100,t = 100,N,init,n_sample = 5, P = (ones(1,length(T)) / length(T))){
   
   # initial state
   s_0 = discrete(init,1)
