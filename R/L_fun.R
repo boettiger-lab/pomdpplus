@@ -154,10 +154,12 @@ ff <- function(initial,T,O,a,z,P_0){
 
 ##################################################
 
+#' @importFrom stats runif
+# FIXME I think this is really just the `sample` function in R
 discrete <- function(p,n){
   s = array(0, dim = n)
   for (i in 1:n){
-    s[i] = sum(cumsum(p)<runif(1))+1
+    s[i] = sum(cumsum(p) < stats::runif(1))+1
   }
   s
 }
@@ -166,7 +168,7 @@ discrete <- function(p,n){
 
 Interp_MM = function(initial, alpha, alpha_action){
     ## Compute dot product with initial
-    a <- alpha %>% map_dbl(function(x) initial %*% matrix(x, ncol=1))
+    a <- vapply(alpha, function(x) initial %*% matrix(x, ncol=1), double(1))
     
     ## Return policy of the vector which has the biggest inner product
     #alpha_action[which.max(a)]

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<pomdpx version ="1.0" id="sample" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="/Users/Milad/Documents/appl-0.96/doc/POMDPX/pomdpx.xsd">
+
+<Description>POMDP model</Description>
+
+<Discount>0.95</Discount>
+
+<Variable>
+
+<StateVar vnamePrev="ps_0" vnameCurr="ps_1" fullyObs="false">
+<ValueEnum>a1 a2</ValueEnum>
+</StateVar>
+
+<ObsVar vname="measurements">
+<NumValues>2</NumValues>
+</ObsVar>
+
+<ActionVar vname="action_control">
+<ValueEnum>a1 a2</ValueEnum>
+</ActionVar>
+
+<RewardVar vname="reward_agent" />
+</Variable>
+
+<InitialStateBelief>
+<CondProb>
+<Var>ps_0</Var>
+<Parent>null</Parent>
+<Parameter type = "TBL">
+<Entry>
+<Instance>-</Instance>
+<ProbTable>0.5 0.5</ProbTable>
+</Entry>
+</Parameter>
+</CondProb>
+
+</InitialStateBelief>
+
+<StateTransitionFunction>
+
+<CondProb>
+<Var>ps_1</Var>
+<Parent>action_control ps_0</Parent>
+<Parameter type="TBL">
+<Entry>
+<Instance>a1 - -</Instance>
+<ProbTable>0 1
+0 1
+</ProbTable>
+</Entry>
+<Entry>
+<Instance>a2 - -</Instance>
+<ProbTable>1 0
+0 1
+</ProbTable>
+</Entry>
+
+</Parameter>
+</CondProb>
+</StateTransitionFunction>
+
+<ObsFunction>
+
+<CondProb>
+<Var>measurements</Var>
+<Parent>action_control ps_1</Parent>
+<Parameter type="TBL">
+<Entry>
+<Instance>a1 - -</Instance>
+<ProbTable>0 1
+1 0
+</ProbTable>
+</Entry>
+<Entry>
+<Instance>a2 - -</Instance>
+<ProbTable>0 1
+1 0
+</ProbTable>
+</Entry>
+
+</Parameter>
+</CondProb>
+</ObsFunction>
+
+<RewardFunction>
+<Func>
+<Var>reward_agent</Var>
+<Parent>action_control ps_0</Parent>
+<Parameter type="TBL">
+<Entry>
+<Instance>a1 a1</Instance>
+<ValueTable>0</ValueTable>
+</Entry>
+<Entry>
+<Instance>a1 a2</Instance>
+<ValueTable>-10</ValueTable>
+</Entry>
+<Entry>
+<Instance>a2 a1</Instance>
+<ValueTable>-1</ValueTable>
+</Entry>
+<Entry>
+<Instance>a2 a2</Instance>
+<ValueTable>-11</ValueTable>
+</Entry>
+
+</Parameter>
+</Func>
+</RewardFunction>
+
+</pomdpx>

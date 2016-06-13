@@ -1,26 +1,27 @@
-### INPUTS
-
-# input: User will provide a list of transition, emission and reward, and discount parameters
-## each of the transitions is itself a list of the transitions for each candidate model
-### same for emission and reward.
-
-# t: time horizon of the problem ; default = 100
-# Num_sim: Number of simulations replicates ; default = 100
-# n_true: index of the true model
-# n_sample: number of sample to use for planning under model uncertainty; default = 5
-# initial: initial belief state
-# P: prior probability of the models ; default is flat prior
-
-
+#' main code for planning and learning in uncertain systems
+#'
+#' @param input A list of transition (itself a list for all candidate models),
+#' emission (itslef a list for all candidate models), reward matrix, and discount factor.
+#' @param t time horizon of the problem ; default = 100
+#' @param Num_sim Number of simulations replicates ; default = 100
+#' @param n_true index of the true model
+#' @param n_sample number of sample to use for planning under model uncertainty; default = 5
+#' @param initial initial belief state
+#' @param P prior probability of the models ; default is flat prior
+#' @return history_star_rew history of rewards for the true model; dim = Num_sim * t
+#' @return history_star_act history of actions for the true model; dim = Num_sim * t
+#' @return history_pl_rew history of rewards for the plus model; dim = Num_sim * t
+#' @return history_pl_act history of actions for the plus model; dim = Num_sim * t
+#' @return state_seq_mdp_pl hidden state sequence of the plus model; dim = Num_sim * t
+#' @return state_seq_mdp_star hidden state sequence of the true model; dim = Num_sim * t
+#' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
+#' @return av list of alpha vectors for all candidate models; length = Num_Model
+#' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
+#' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
+#' @importFrom purrr map_dbl
+#' @importFrom appl read_policy writepomdpx_POMDP
 
 plus <- function(input,t = 100, Num_sim = 100, n_true, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
-                                                                                  
-
-devtools::load_all()
-source("L_fun.R")
-source("init_models.R")
-source("writepomdpx_POMDP.R")
-source("run_sim.R")
 
 # extracting model parameters from input
 T = input[[1]]
