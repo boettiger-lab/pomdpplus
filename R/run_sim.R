@@ -22,11 +22,11 @@
 #' @return PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 #' @return av: list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
-
-
+#' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
+#' @importFrom purrr map_dbl
+#' @importFrom appl read_policy writepomdpx_POMDP
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim = 100,t = 100,N,init,n_sample = 5, P = (ones(1,length(T)) / length(T))){
-  devtools::load_all()
-  
+
   # initial state
   s_0 = discrete(init,1)
   

@@ -4,7 +4,7 @@
 \alias{init_models}
 \title{function for generating approimation of value function for each candidate model POMDP}
 \usage{
-init_models(T, O, R, GAMMA, Num_model = length(T), init)
+init_models(T, O, R, GAMMA, Num_model = length(T), initial)
 }
 \arguments{
 \item{T:}{list of transition probabilities matrices for all candidate models; length = Num_model}
