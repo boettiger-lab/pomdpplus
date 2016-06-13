@@ -18,3 +18,7 @@ Imports:
     purrr,
     stats
 RoxygenNote: 5.0.1
+
+Remotes:
+  cboettig/appl
+
