@@ -1,5 +1,5 @@
 build:
   image: cboettig/2016
   commands:
-    - R -e "devtools::check()"
+    - R -e "x <- devtools::check(); testthat::expect_length(x$errors, 0); testthat::expect_length(x$warnings, 0)"
 
