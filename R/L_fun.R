@@ -154,10 +154,12 @@ ff <- function(initial,T,O,a,z,P_0){
 
 ##################################################
 
+#' @importFrom(stats, runif)
+# FIXME I think this is really just the `sample` function in R
 discrete <- function(p,n){
   s = array(0, dim = n)
   for (i in 1:n){
-    s[i] = sum(cumsum(p)<runif(1))+1
+    s[i] = sum(cumsum(p) < stats::runif(1))+1
   }
   s
 }

@@ -14,7 +14,7 @@
 # n_sample: number of samples used for planning
 # P: prior distribution over models
 
-run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (ones(1,length(T)) / length(T))){
+run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
   
   # initial state
   s_0 = discrete(init,1)
