@@ -8,7 +8,9 @@
 #' @param initial: initial belief over the states
 #' @return av: list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
-
+#' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
+#' @importFrom purrr map_dbl
+#' @importFrom appl read_policy writepomdpx_POMDP
 
 #' @importFrom appl writepomdpx_POMDP pomdpsol read_policy
 init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial) {
