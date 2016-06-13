@@ -20,9 +20,11 @@ aa = vector('list',Num_model)
 
 
 for(i in 1:Num_model){
-  writepomdpx_POMDP(T[[i]],O[[i]],R,GAMMA,initial)
+
+  appl::writepomdpx_POMDP(T[[i]],O[[i]],R,GAMMA,init)
   appl::pomdpsol("input.pomdpx", "pomdp.policy", precision = 0.001, timeout = 1000)
-  out = read_policy(initial,file = "pomdp.policy")
+  out = appl::read_policy(init,file = "pomdp.policy")
+
   av[[i]] = out[[3]]
   aa[[i]] = out[[4]] + 1
 }
