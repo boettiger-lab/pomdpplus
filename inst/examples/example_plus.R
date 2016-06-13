@@ -5,7 +5,7 @@ Num_s = 2; Num_z = 2; Num_a = 2;
 GAMMA = 0.95
 
 
-init <- function(theta,Num_s,Num_a,Num_z){
+initt <- function(theta,Num_s,Num_a,Num_z){
   transit = array(0, dim = c(Num_s,Num_s,Num_a))
   emis = array(0, dim = c(Num_s,Num_z,Num_a))
   transit[,,1] = matrix(c(1-theta,theta,0,1), 2, 2, byrow= TRUE)
@@ -19,7 +19,7 @@ T = vector("list", length = length(theta))
 O = vector("list", length = length(theta))
 
 for(i in 1:length(theta)){
-  out <- init(theta[i],Num_s,Num_a,Num_z)
+  out <- initt(theta[i],Num_s,Num_a,Num_z)
   T[[i]] = out[[1]]
   O[[i]] = out[[2]]
 }
@@ -33,3 +33,5 @@ n_sample = 3
 initial = array(1, dim = Num_s) / Num_s
 P = (array(1,dim = length(T))/ length(T))
 
+input = vector("list", length = 4)
+input[[1]] = T; input[[2]] = O; input[[3]] = R; input[[4]] = GAMMA

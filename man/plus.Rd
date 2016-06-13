@@ -24,19 +24,19 @@ emission (itslef a list for all candidate models), reward matrix, and discount f
 \item{P:}{prior probability of the models ; default is flat prior}
 }
 \value{
-history_star_rew: history of rewards for the true model; dim = Num_sim \times t
+history_star_rew: history of rewards for the true model; dim = Num_sim * t
 
-history_star_act: history of actions for the true model; dim = Num_sim \times t
+history_star_act: history of actions for the true model; dim = Num_sim * t
 
-history_pl_rew: history of rewards for the plus model; dim = Num_sim \times t
+history_pl_rew: history of rewards for the plus model; dim = Num_sim * t
 
-history_pl_act: history of actions for the plus model; dim = Num_sim \times t
+history_pl_act: history of actions for the plus model; dim = Num_sim * t
 
-state_seq_mdp_pl: hidden state sequence of the plus model; dim = Num_sim \times t
+state_seq_mdp_pl: hidden state sequence of the plus model; dim = Num_sim * t
 
-state_seq_mdp_star: hidden state sequence of the true model; dim = Num_sim \times t
+state_seq_mdp_star: hidden state sequence of the true model; dim = Num_sim * t
 
-PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim \times t \times Num_model
+PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 
 av: list of alpha vectors for all candidate models; length = Num_Model
 

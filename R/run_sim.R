@@ -13,18 +13,19 @@
 #' @param init: initial belief of the states
 #' @param n_sample: number of samples used for planning; default = 5
 #' @param P: prior probability of the models ; default is flat prior
-#' @return history_star_rew: history of rewards for the true model; dim = Num_sim \times t
-#' @return history_star_act: history of actions for the true model; dim = Num_sim \times t
-#' @return history_pl_rew: history of rewards for the plus model; dim = Num_sim \times t
-#' @return history_pl_act: history of actions for the plus model; dim = Num_sim \times t
-#' @return state_seq_mdp_pl: hidden state sequence of the plus model; dim = Num_sim \times t
-#' @return state_seq_mdp_star: hidden state sequence of the true model; dim = Num_sim \times t
-#' @return PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim \times t \times Num_model
+#' @return history_star_rew: history of rewards for the true model; dim = Num_sim * t
+#' @return history_star_act: history of actions for the true model; dim = Num_sim * t
+#' @return history_pl_rew: history of rewards for the plus model; dim = Num_sim * t
+#' @return history_pl_act: history of actions for the plus model; dim = Num_sim * t
+#' @return state_seq_mdp_pl: hidden state sequence of the plus model; dim = Num_sim * t
+#' @return state_seq_mdp_star: hidden state sequence of the true model; dim = Num_sim * t
+#' @return PP_pl: Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 #' @return av: list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 
 
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim = 100,t = 100,N,init,n_sample = 5, P = (ones(1,length(T)) / length(T))){
+  devtools::load_all()
   
   # initial state
   s_0 = discrete(init,1)
@@ -78,6 +79,7 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim = 100,t = 100,N,init,n_sample = 
     av_sam = vector('list',n_sample)
     T_sam = vector('list',n_sample)
     belief = array(0, dim = c(n_sample,Num_s))
+    w = array(0, dim = n_sample)
     for(i in 1:n_sample){
       T_sam[[i]] = T[[ind_sam[i]]]
       aa_sam[[i]] = aa[[ind_sam[i]]]
