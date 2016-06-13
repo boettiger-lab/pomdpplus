@@ -7,7 +7,7 @@ Authors@R: c(person("Carl", "Boettiger", email = "cboettig@gmail.com", role = c(
 Description: Utilities for planning and learning in uncertain systems by
     applying Bayesian learning approaches to Partially Observed Markov Descision
     Process algorithms.
-License: BSD-2
+License: BSD_2_clause
 LazyData: TRUE
 Encoding: UTF-8
 Suggests:
