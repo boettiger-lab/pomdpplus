@@ -2,7 +2,6 @@ theta = seq(0, 1, by = 0.2)
 Num_s = 2; Num_z = 2; Num_a = 2;
 GAMMA = 0.95
 
-library(xml2); library(purrr)
 initt <- function(theta,Num_s,Num_a,Num_z){
   transit = array(0, dim = c(Num_s,Num_s,Num_a))
   emis = array(0, dim = c(Num_s,Num_z,Num_a))
@@ -26,8 +25,8 @@ R = matrix(c(0,-1,-10,-11),2,2,byrow = TRUE)
 Num_model = length(T)
 t = 10
 Num_sim = 10
-n_true = 4 
-n_sample = 3 
+n_true = 4
+n_sample = 3
 initial = array(1, dim = Num_s) / Num_s
 P = (array(1,dim = length(T))/ length(T))
 

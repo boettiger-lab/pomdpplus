@@ -4,8 +4,8 @@
 \alias{run_sim}
 \title{function for running forward simulations for planning and learning under model uncertainty}
 \usage{
-run_sim(T, O, R, GAMMA, av, aa, n, Num_sim = 100, t = 100, N, init,
-  n_sample = 5, P = (ones(1, length(T))/length(T)))
+run_sim(T, O, R, GAMMA, av, aa, n, Num_sim, t, N, init, n_sample,
+  P = (array(1, dim = c(1, length(T)))/length(T)))
 }
 \arguments{
 \item{T:}{list of transition probabilities matrices for all candidate models; length = Num_model}

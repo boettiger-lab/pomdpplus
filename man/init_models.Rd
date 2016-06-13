@@ -4,7 +4,7 @@
 \alias{init_models}
 \title{function for generating approimation of value function for each candidate model POMDP}
 \usage{
-init_models(T, O, R, GAMMA, Num_model = length(T), init)
+init_models(T, O, R, GAMMA, Num_model = length(T), initial)
 }
 \arguments{
 \item{T:}{list of transition probabilities matrices for all candidate models; length = Num_model}
@@ -17,7 +17,7 @@ init_models(T, O, R, GAMMA, Num_model = length(T), init)
 
 \item{Num_model:}{number of candidate models}
 
-\item{init:}{initial belief over the states}
+\item{initial:}{initial belief over the states}
 }
 \value{
 av: list of alpha vectors for all candidate models; length = Num_Model
