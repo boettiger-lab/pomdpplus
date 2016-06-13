@@ -14,13 +14,9 @@
 
 
 plus <- function(input,t = 100, Num_sim = 100, n_true, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
-                                                                                  
 
-devtools::load_all()
-source("L_fun.R")
-source("init_models.R")
-source("writepomdpx_POMDP.R")
-source("run_sim.R")
+
+
 
 # extracting model parameters from input
 T = input[[1]]

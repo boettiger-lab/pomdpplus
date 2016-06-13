@@ -18,9 +18,9 @@ XX = paste0("a",1:Num_a)
 SS = paste0("s",1:Num_s)
 
 for(i in 1:Num_model){
-  writepomdpx_POMDP(T[[i]],O[[i]],R,GAMMA,init)
+  appl::writepomdpx_POMDP(T[[i]],O[[i]],R,GAMMA,init)
   appl::pomdpsol("input.pomdpx", "pomdp.policy", precision = 0.001, timeout = 1000)
-  out = readpolicy(init,file = "pomdp.policy")
+  out = appl::readpolicy(init,file = "pomdp.policy")
   av[[i]] = out[[3]]
   aa[[i]] = out[[4]] + 1
 }
