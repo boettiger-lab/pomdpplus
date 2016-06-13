@@ -7,22 +7,22 @@
 init_models(T, O, R, GAMMA, Num_model = length(T), initial)
 }
 \arguments{
-\item{T:}{list of transition probabilities matrices for all candidate models; length = Num_model}
+\item{T}{list of transition probabilities matrices for all candidate models; length = Num_model}
 
-\item{O:}{list of emission probabilities matrices for all candidate models; length = Num_model}
+\item{O}{list of emission probabilities matrices for all candidate models; length = Num_model}
 
-\item{R:}{matrix of reward function}
+\item{R}{matrix of reward function}
 
-\item{GAMMA:}{discount factor}
+\item{GAMMA}{discount factor}
 
-\item{Num_model:}{number of candidate models}
+\item{Num_model}{number of candidate models}
 
-\item{initial:}{initial belief over the states}
+\item{initial}{initial belief over the states}
 }
 \value{
-av: list of alpha vectors for all candidate models; length = Num_Model
+av list of alpha vectors for all candidate models; length = Num_Model
 
-aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
+aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 }
 \description{
 function for generating approimation of value function for each candidate model POMDP

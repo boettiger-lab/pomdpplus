@@ -1,17 +1,15 @@
 #' function for generating approimation of value function for each candidate model POMDP
 #'
-#' @param T: list of transition probabilities matrices for all candidate models; length = Num_model
-#' @param O: list of emission probabilities matrices for all candidate models; length = Num_model
-#' @param R: matrix of reward function
-#' @param GAMMA: discount factor
-#' @param Num_model: number of candidate models
-#' @param initial: initial belief over the states
-#' @return av: list of alpha vectors for all candidate models; length = Num_Model
-#' @return aa: list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
+#' @param T list of transition probabilities matrices for all candidate models; length = Num_model
+#' @param O list of emission probabilities matrices for all candidate models; length = Num_model
+#' @param R matrix of reward function
+#' @param GAMMA discount factor
+#' @param Num_model number of candidate models
+#' @param initial initial belief over the states
+#' @return av list of alpha vectors for all candidate models; length = Num_Model
+#' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
 #' @importFrom purrr map_dbl
-#' @importFrom appl read_policy writepomdpx_POMDP
-
 #' @importFrom appl writepomdpx_POMDP pomdpsol read_policy
 init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial) {
 
