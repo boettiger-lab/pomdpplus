@@ -10,7 +10,7 @@
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
 #' @importFrom purrr map_dbl
-#' @importFrom appl writepomdp pomdpsol read_policy
+#' @importFrom appl write_pomdpx pomdpsol read_policy
 init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial) {
 
 Num_s = dim(T[[1]])[1]
