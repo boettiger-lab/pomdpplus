@@ -2,7 +2,7 @@
 
 importFrom(appl,pomdpsol)
 importFrom(appl,read_policy)
-importFrom(appl,writepomdpx_POMDP)
+importFrom(appl,write_pomdpx)
 importFrom(purrr,map_dbl)
 importFrom(stats,runif)
 importFrom(xml2,read_xml)

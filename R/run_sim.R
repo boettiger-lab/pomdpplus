@@ -24,7 +24,7 @@
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
 #' @importFrom purrr map_dbl
-#' @importFrom appl read_policy writepomdpx_POMDP
+#' @importFrom appl read_policy write_pomdpx
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
 
   # initial state
