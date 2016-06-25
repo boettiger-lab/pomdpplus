@@ -2,5 +2,5 @@
 
 importFrom(appl,pomdpsol)
 importFrom(appl,read_policy)
-importFrom(appl,writepomdpx_POMDP)
+importFrom(appl,write_pomdpx)
 importFrom(stats,runif)
