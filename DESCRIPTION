@@ -14,8 +14,6 @@ Suggests:
     testthat
 Imports:
     appl,
-    xml2,
-    purrr,
     stats
 RoxygenNote: 5.0.1
 Remotes:
