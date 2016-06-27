@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <pomdpx version ="1.0" id="sample" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="/Users/Milad/Documents/appl-0.96/doc/POMDPX/pomdpx.xsd">
+      xsi:noNamespaceSchemaLocation="/Users/Milad/Documents/appl-0.96/doc/POMDPX/pomdpx.xsd">
 
 <Description>POMDP model</Description>
 
@@ -46,14 +46,14 @@
 <Parameter type="TBL">
 <Entry>
 <Instance>a1 - -</Instance>
-<ProbTable>0 1
-0 1
+<ProbTable>0.0000000000 1.0000000000
+0.0000000000 1.0000000000
 </ProbTable>
 </Entry>
 <Entry>
 <Instance>a2 - -</Instance>
-<ProbTable>1 0
-0 1
+<ProbTable>1.0000000000 0.0000000000
+0.0000000000 1.0000000000
 </ProbTable>
 </Entry>
 
@@ -69,14 +69,14 @@
 <Parameter type="TBL">
 <Entry>
 <Instance>a1 - -</Instance>
-<ProbTable>0 1
-1 0
+<ProbTable>0.0000000000 1.0000000000
+1.0000000000 0.0000000000
 </ProbTable>
 </Entry>
 <Entry>
 <Instance>a2 - -</Instance>
-<ProbTable>0 1
-1 0
+<ProbTable>0.0000000000 1.0000000000
+1.0000000000 0.0000000000
 </ProbTable>
 </Entry>
 
