@@ -15,8 +15,6 @@
 #' @param P prior probability of the models ; default is flat prior
 #' @return df data farme including results of forward simulations
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
-#' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
-#' @importFrom purrr map_dbl
 #' @importFrom appl read_policy write_pomdpx
 =======
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
