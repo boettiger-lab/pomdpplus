@@ -172,12 +172,12 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1,
   df <- data.frame(df,(col_star_act), (col_star_rew), 
                    (col_star_st), (col_pl_act), (col_pl_rew), (col_pl_st))
   
-  names(df)[3] = "True action"
-  names(df)[4] = "True reward"
-  names(df)[5] = "True state"
-  names(df)[6] = "PLUS action"
-  names(df)[7] = "PLUS reward"
-  names(df)[8] = "PLUS state"
+  names(df)[3] = "true_action"
+  names(df)[4] = "true_reward"
+  names(df)[5] = "true_state"
+  names(df)[6] = "plus_action"
+  names(df)[7] = "plus_reward"
+  names(df)[8] = "plus_state"
   
   
   output <- list(df, PP_pl)
