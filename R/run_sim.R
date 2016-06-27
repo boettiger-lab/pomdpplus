@@ -15,14 +15,12 @@
 #' @param P prior probability of the models ; default is flat prior
 #' @return df data farme including results of forward simulations
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
-<<<<<<< HEAD
 #' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
 #' @importFrom purrr map_dbl
 #' @importFrom appl read_policy write_pomdpx
 =======
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
->>>>>>> 7bd09b8d17b0ee5fba8bd342d0d95eea30205385
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
 
   # initial state
