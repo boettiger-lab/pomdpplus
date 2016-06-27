@@ -13,15 +13,8 @@
 #' @param init initial belief of the states
 #' @param n_sample number of samples used for planning; default = 5
 #' @param P prior probability of the models ; default is flat prior
-#' @return history_star_rew history of rewards for the true model; dim = Num_sim * t
-#' @return history_star_act history of actions for the true model; dim = Num_sim * t
-#' @return history_pl_rew history of rewards for the plus model; dim = Num_sim * t
-#' @return history_pl_act history of actions for the plus model; dim = Num_sim * t
-#' @return state_seq_mdp_pl hidden state sequence of the plus model; dim = Num_sim * t
-#' @return state_seq_mdp_star hidden state sequence of the true model; dim = Num_sim * t
+#' @return df data farme including results of forward simulations
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
-#' @return av list of alpha vectors for all candidate models; length = Num_Model
-#' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
 #' @importFrom purrr map_dbl
 #' @importFrom appl read_policy write_pomdpx
@@ -153,8 +146,40 @@ run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1,
 
 
   }
-
-  output = list(history_star_rew,history_star_act,history_pl_rew,
-                history_pl_act,state_seq_mdp_pl,state_seq_mdp_star,PP_pl)
+  
+  
+  df <- expand.grid(1:(t+1),1:Num_sim)
+  names(df)[1] = "time"
+  names(df)[2] = "sim"
+  
+  col_star_act = array(0,dim = length(df[[1]]))
+  col_star_rew = array(0,dim = length(df[[1]]))
+  col_pl_act = array(0,dim = length(df[[1]]))
+  col_pl_rew = array(0,dim = length(df[[1]]))
+  col_star_st = array(0,dim = length(df[[1]]))
+  col_pl_st = array(0,dim = length(df[[1]]))
+  k = 1
+  for(i in seq(1,length(df[[1]]),by = (t+1))){
+    col_star_act[i:(i+t)] =  history_star_act[k,]
+    col_star_rew[i:(i+t)] =  history_star_rew[k,]
+    col_star_st[i:(i+t)] =  state_seq_mdp_star[k,]
+    col_pl_act[i:(i+t)] =  history_pl_act[k,]
+    col_pl_rew[i:(i+t)] =  history_pl_rew[k,]
+    col_pl_st[i:(i+t)] =  state_seq_mdp_pl[k,]
+    k = k+1
+  }
+  
+  df <- data.frame(df,(col_star_act), (col_star_rew), 
+                   (col_star_st), (col_pl_act), (col_pl_rew), (col_pl_st))
+  
+  names(df)[3] = "True action"
+  names(df)[4] = "True reward"
+  names(df)[5] = "True state"
+  names(df)[6] = "PLUS action"
+  names(df)[7] = "PLUS reward"
+  names(df)[8] = "PLUS state"
+  
+  
+  output <- list(df, PP_pl)
 
 }
