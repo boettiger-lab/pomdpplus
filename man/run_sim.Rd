@@ -38,6 +38,10 @@ run_sim(T, O, R, GAMMA, av, aa, n, Num_sim, t, N, init, n_sample,
 df data farme including results of forward simulations
 
 PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
+
+av list of alpha vectors for all candidate models; length = Num_Model
+
+aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 }
 \description{
 function for running forward simulations for planning and learning under model uncertainty

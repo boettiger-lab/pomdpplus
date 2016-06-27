@@ -16,7 +16,6 @@
 #' @return df data farme including results of forward simulations
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 #' @importFrom appl read_policy write_pomdpx
-=======
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
