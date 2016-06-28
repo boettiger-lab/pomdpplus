@@ -5,6 +5,10 @@ theta = seq(0, 1, by = 0.2)
 Num_s = 2; Num_z = 2; Num_a = 2;
 GAMMA = 0.95
 
+## Initialize lists of the transition and observation matrices for each model, theta
+T = vector("list", length = length(theta))
+O = vector("list", length = length(theta))
+
 
 initt <- function(theta,Num_s,Num_a,Num_z){
   transit = array(0, dim = c(Num_s,Num_s,Num_a))
@@ -16,23 +20,25 @@ initt <- function(theta,Num_s,Num_a,Num_z){
   output <- list(transit,emis)
 }
 
-T = vector("list", length = length(theta))
-O = vector("list", length = length(theta))
-
 for(i in 1:length(theta)){
   out <- initt(theta[i],Num_s,Num_a,Num_z)
   T[[i]] = out[[1]]
   O[[i]] = out[[2]]
 }
 
+## Reward matrix
 R = matrix(c(0,-1,-10,-11),2,2,byrow = TRUE)
-Num_model = length(T)
+
+Num_model = length(theta)
 t = 10
 Num_sim = 10
 n_true = 4
 n_sample = 3
 initial = array(1, dim = Num_s) / Num_s
-P = (array(1,dim = length(T))/ length(T))
+
+
+## we don't seem to use this
+# P = (array(1,dim = length(T))/ length(T))
 
 
 

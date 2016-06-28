@@ -18,7 +18,8 @@
 #' @importFrom appl read_policy write_pomdpx
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
-run_sim <- function(T,O,R,GAMMA,av,aa,n,Num_sim,t,N,init,n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
+#' @export
+run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
 
   # initial state
   s_0 = discrete(init,1)
