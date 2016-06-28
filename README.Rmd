@@ -66,12 +66,6 @@ P = (array(1,dim = length(T))/ length(T))
 ```
 
 
-Run model intialization
-
-```{r}
-alphas <- init_models(T, O, R, GAMMA, initial = initial)
-```  
-
 
 Run PLUS:
 
@@ -93,9 +87,3 @@ n <- c("true_reward", "true_action", "plus_rewards", "plus_action", "plus_states
   
 ```
 
-Run simulation: 
-
-
-```{r}
-sim_results <- run_sim(T, O, R, GAMMA, alphas[["av"]], alphas[["aa"]], n_true, Num_sim, t, Num_model, initial, n_sample, P)
-```
