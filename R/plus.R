@@ -12,6 +12,7 @@
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
+#' @export
 plus <- function(input,t = 100, Num_sim = 100, n_true, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
 
 # extracting model parameters from input
