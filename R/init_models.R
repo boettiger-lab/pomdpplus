@@ -8,27 +8,31 @@
 #' @param initial initial belief over the states
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
-#' @importFrom xml2 read_xml xml_find_all xml_contents xml_attr
-#' @importFrom purrr map_dbl
-#' @importFrom appl writepomdpx_POMDP pomdpsol read_policy
-init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial) {
+#' @importFrom appl write_pomdpx pomdpsol read_policy
+#' @export
+init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL) {
 
-Num_s = dim(T[[1]])[1]
-Num_a = dim(T[[1]])[3]
-av = vector('list',Num_model)
-aa = vector('list',Num_model)
+  Num_s = dim(T[[1]])[1]
+  Num_a = dim(T[[1]])[3]
+
+  if(is.null(initial))
+    initial <- array(1, dim = Num_s) / Num_s
 
 
-for(i in 1:Num_model){
+  av = vector('list',Num_model)
+  aa = vector('list',Num_model)
 
-  appl::writepomdpx_POMDP(T[[i]],O[[i]],R,GAMMA,initial)
-  appl::pomdpsol("input.pomdpx", "pomdp.policy", precision = 0.001, timeout = 1000)
-  out = appl::read_policy(initial, file = "pomdp.policy")
 
-  av[[i]] = out[[3]]
-  aa[[i]] = out[[4]] + 1
-}
+  for(i in 1:Num_model){
 
-output = list(av,aa)
+    appl::write_pomdpx(T[[i]],O[[i]],R,GAMMA,initial)
+    appl::pomdpsol("input.pomdpx", "pomdp.policy", precision = 0.001, timeout = 1000)
+    out = appl::read_policy(initial, file = "pomdp.policy")
+
+    av[[i]] = out[[3]]
+    aa[[i]] = out[[4]] + 1
+  }
+
+  output = list(av = av, aa = aa)
 
 }

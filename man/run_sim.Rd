@@ -4,7 +4,7 @@
 \alias{run_sim}
 \title{function for running forward simulations for planning and learning under model uncertainty}
 \usage{
-run_sim(T, O, R, GAMMA, av, aa, n, Num_sim, t, N, init, n_sample,
+run_sim(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, n_sample,
   P = (array(1, dim = c(1, length(T)))/length(T)))
 }
 \arguments{
