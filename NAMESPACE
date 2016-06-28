@@ -2,7 +2,9 @@
 
 export(init_models)
 export(plus)
+export(plus_seq)
 export(run_sim)
+export(run_sim_seq)
 importFrom(appl,pomdpsol)
 importFrom(appl,read_policy)
 importFrom(appl,write_pomdpx)

@@ -9,7 +9,7 @@
 #' @param initial initial belief state
 #' @param P prior probability of the models ; default is flat prior
 #' @return df data farme including results of forward simulations
-#' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
+#' @return posterior data frame of Posterior distribution of each candidate model at each time
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @export
@@ -41,10 +41,10 @@ out2 <- run_sim(T,O,R,GAMMA,av,aa,n_true,Num_sim,t,N,initial,n_sample,P)
 
 
 df = out2[[1]]
-PP_pl = out2[[2]]
+posterior = out2[[2]]
 
 
-output = list(df,PP_pl,av,aa)
+list(df = df ,posterior = posterior ,av = av ,aa = aa)
 
 
 

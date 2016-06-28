@@ -31,6 +31,6 @@ init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL) {
     aa[[i]] = out[[4]] + 1
   }
 
-  output = list(av = av, aa = aa)
+  list(av = av, aa = aa)
 
 }

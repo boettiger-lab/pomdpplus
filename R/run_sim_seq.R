@@ -6,8 +6,8 @@
 #' @param GAMMA discount factor
 #' @param av list of alpha vectors for all candidate models; length = Num_Model
 #' @param aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
-#' @param n index of the true model
 #' @param Num_sim number of simulation replicates; default = 100
+#' @param seq list containing the sequnce of actions and observations from environment
 #' @param t time horizon of the simulaitons; default = 100
 #' @param N number of candidate models
 #' @param init initial belief of the states
@@ -17,23 +17,18 @@
 #' @return posterior data frame of Posterior distribution of each candidate model at each time
 #' @importFrom appl read_policy write_pomdpx
 #' @export
-run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
-
+run_sim_seq <- function(T, O, R, GAMMA, av, aa, Num_sim, seq, N = length(T), init, n_sample, P = (array(1, dim = c(1,length(T))) / length(T))){
+  
+  obs_seq = seq[[1]]
+  act_seq = seq[[2]]
+  t = length(obs_seq)
   # initial state
   s_0 = discrete(init,1)
-
-  # true model
-  T_star = T[[n]]; O_star = O[[n]]
-  aa_star = aa[[n]]
-  av_star = av[[n]]
-
+  
   # dimensions of the problem
-  Num_s = dim(T_star)[1]
-  Num_z = dim(O_star)[2]
-  Num_a = dim(T_star)[3]
-  # sequence of states
-  state_seq_mdp_star = array(0, dim = c(Num_sim,t+1))
-  state_seq_mdp_pl = array(0, dim = c(Num_sim,t+1))
+  Num_s = dim(T[[1]])[1]
+  Num_z = dim(O[[1]])[2]
+  Num_a = dim(T[[1]])[3]
 
   # true model sequence of act, obs, rew, and val
   history_star_act = array(0, dim = c(Num_sim,t+1))
@@ -50,21 +45,19 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
   for(i in 1:N){
     b_pl[[i]] = array(0,dim = c(Num_sim,t+1,Num_s))
   }
-
+  
   # track of posterior probability of candidate models over time
   PP_pl  = array(0, dim = c(Num_sim,t+1,N))
-
+  
   # let's start the simulations
   for(m in 1:Num_sim){
-
+    
     # initialize
-    state_seq_mdp_star[m,1] = s_0
-    state_seq_mdp_pl[m,1] = s_0
     b_star[m,1,]= init
     for(i in 1:N){
       b_pl[[i]][m,1,] = init
     }
-
+    
     # sample models for planning
     ind_sam = discrete(P,n_sample)
     aa_sam = vector('list',n_sample)
@@ -79,37 +72,29 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
       belief[i,] = b_pl[[ind_sam[i]]][m,1,]
       w[i] = P[ind_sam[i]]
     }
-
+    
     # taking the first action for true model
-    out = Interp_MM(b_star[m,1,],av_star,aa_star)
-    history_star_act[m,1] = out[[2]]
-
+    history_star_act[m,1] = act_seq[1]
+    
     # taking the first action for plus
     out <- Expectation_pl(belief,av_sam,aa_sam,Num_a,w)
     history_pl_act[m,1] = out[[2]]
-
+    
     # initializing the priors over candidate models
     PP_pl[m,1,] = P
-
+    
     # starting the forward run
     for(tt in 1:t){
       # getting the observation from the environment
-      # true model
-      out_star <- fakemodel(T_star,O_star,state_seq_mdp_star[m,tt],history_star_act[m,tt],R,Num_s,Num_z)
-      state_seq_mdp_star[m,tt+1] = out_star[[1]]
-      history_star_obs[m,tt] = out_star[[2]]
-      history_star_rew[m,tt] = out_star[[3]]
+      history_star_obs[m,tt] = obs_seq[tt]
+      history_star_rew[m,tt] = R[obs_seq[tt],act_seq[tt]]
       # updating the belief
-      b_star[m,tt+1,] = update_belief(b_star[m,tt,],T_star,O_star,history_star_act[m,tt],history_star_obs[m,tt])
-
       # PLUS
-      out_pl <- fakemodel(T_star,O_star,state_seq_mdp_pl[m,tt],history_pl_act[m,tt],R,Num_s,Num_z)
-      state_seq_mdp_pl[m,tt+1] = out_pl[[1]]
-      history_pl_obs[m,tt] = out_pl[[2]]
-      history_pl_rew[m,tt] = out_pl[[3]]
-
+      history_pl_obs[m,tt] = obs_seq[tt]
+      history_pl_rew[m,tt] = R[obs_seq[tt],history_pl_act[m,tt]]
+      
       # Learning phase for plus
-
+      
       for(i in 1:length(P)){
         act = history_pl_act[m,tt]
         obs = history_pl_obs[m,tt]
@@ -119,14 +104,13 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
         b_pl[[i]][m,tt+1,] = out_pl[[2]]
       }
       PP_pl[m,tt+1,] = normalize(PP_pl[m,tt+1,])
-
+      
       # taking next action
-
+      
       # true model
-      out = Interp_MM(b_star[m,tt+1,],av_star,aa_star)
-      history_star_act[m,tt+1] = out[[2]]
-
-
+      history_star_act[m,tt+1] = act_seq[tt+1]
+      
+      
       # PLUS
       ind_sam = discrete(PP_pl[m,tt+1,],n_sample)
       w = array(0,dim = c(n_sample))
@@ -140,10 +124,10 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
       w = normalize(w)
       out <- Expectation_pl(belief,av_sam,aa_sam,Num_a,w)
       history_pl_act[m,tt+1] = out[[2]]
-
+      
     }
-
-
+    
+    
   }
   
   
@@ -155,34 +139,28 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
   col_star_rew = array(0,dim = length(df[[1]]))
   col_pl_act = array(0,dim = length(df[[1]]))
   col_pl_rew = array(0,dim = length(df[[1]]))
-  col_star_st = array(0,dim = length(df[[1]]))
-  col_pl_st = array(0,dim = length(df[[1]]))
   k = 1
   for(i in seq(1,length(df[[1]]),by = (t+1))){
     col_star_act[i:(i+t)] =  history_star_act[k,]
     col_star_rew[i:(i+t)] =  history_star_rew[k,]
-    col_star_st[i:(i+t)] =  state_seq_mdp_star[k,]
     col_pl_act[i:(i+t)] =  history_pl_act[k,]
     col_pl_rew[i:(i+t)] =  history_pl_rew[k,]
-    col_pl_st[i:(i+t)] =  state_seq_mdp_pl[k,]
     k = k+1
   }
   
   df <- data.frame(df,(col_star_act), (col_star_rew), 
-                   (col_star_st), (col_pl_act), (col_pl_rew), (col_pl_st))
+                  (col_pl_act), (col_pl_rew))
   
   names(df)[3] = "true_action"
   names(df)[4] = "true_reward"
-  names(df)[5] = "true_state"
-  names(df)[6] = "plus_action"
-  names(df)[7] = "plus_reward"
-  names(df)[8] = "plus_state"
-  
+  names(df)[5] = "plus_action"
+  names(df)[6] = "plus_reward"
+
   
   posterior <- expand.grid(1:(t+1),1:Num_sim)
   names(posterior)[1] = "time"
   names(posterior)[2] = "sim"
-
+  
   col_post = array(0,dim = c(length(posterior[[1]]),Num_model))
   for(i in 1:length(posterior[[1]])){
     col_post[i,] =  PP_pl[posterior[[2]][i],posterior[[1]][i],]
@@ -195,5 +173,5 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
   }
   
   list(df = df, posterior = posterior)
-
+  
 }
