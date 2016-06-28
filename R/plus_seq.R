@@ -2,7 +2,6 @@
 #'
 #' @param input A list of transition (itself a list for all candidate models),
 #' emission (itslef a list for all candidate models), reward matrix, and discount factor.
-#' @param t time horizon of the problem ; default = 100
 #' @param Num_sim Number of simulations replicates ; default = 100
 #' @param seq list containing the sequnce of actions and observations from environment
 #' @param n_sample number of sample to use for planning under model uncertainty; default = 5
@@ -13,7 +12,7 @@
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @export
-plus_seq <- function(input,t = 100, Num_sim = 100, seq, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
+plus_seq <- function(input, Num_sim = 100, seq, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]]))){
   
   # extracting model parameters from input
   T = input[[1]]

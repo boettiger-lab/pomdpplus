@@ -183,14 +183,14 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
   names(posterior)[1] = "time"
   names(posterior)[2] = "sim"
 
-  col_post = array(0,dim = c(length(posterior[[1]]),Num_model))
+  col_post = array(0,dim = c(length(posterior[[1]]),N))
   for(i in 1:length(posterior[[1]])){
     col_post[i,] =  PP_pl[posterior[[2]][i],posterior[[1]][i],]
   }
   
   posterior <- data.frame(posterior,col_post)
   
-  for(i in 3:(3+Num_model-1)){
+  for(i in 3:(3+N-1)){
     names(posterior)[i] = paste0("model_",(i-2))
   }
   

@@ -5,12 +5,14 @@
 #' @param R matrix of reward function
 #' @param GAMMA discount factor
 #' @param Num_model number of candidate models
+#' @param precision precision to run the models 
+#' @param timeout if you want to stop the run based on a specific time
 #' @param initial initial belief over the states
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @importFrom appl write_pomdpx pomdpsol read_policy
 #' @export
-init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL) {
+init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL, precision = 0.001, timeout = 1000) {
 
   Num_s = dim(T[[1]])[1]
   Num_a = dim(T[[1]])[3]
@@ -24,7 +26,7 @@ init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL) {
   for(i in 1:Num_model){
 
     appl::write_pomdpx(T[[i]],O[[i]],R,GAMMA,initial)
-    appl::pomdpsol("input.pomdpx", "pomdp.policy", precision = 0.001, timeout = 1000)
+    appl::pomdpsol("input.pomdpx", "pomdp.policy", precision, timeout)
     out = appl::read_policy(initial, file = "pomdp.policy")
 
     av[[i]] = out[[3]]
