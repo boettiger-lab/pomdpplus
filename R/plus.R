@@ -8,12 +8,7 @@
 #' @param n_sample number of sample to use for planning under model uncertainty; default = 5
 #' @param initial initial belief state
 #' @param P prior probability of the models ; default is flat prior
-#' @return history_star_rew history of rewards for the true model; dim = Num_sim * t
-#' @return history_star_act history of actions for the true model; dim = Num_sim * t
-#' @return history_pl_rew history of rewards for the plus model; dim = Num_sim * t
-#' @return history_pl_act history of actions for the plus model; dim = Num_sim * t
-#' @return state_seq_mdp_pl hidden state sequence of the plus model; dim = Num_sim * t
-#' @return state_seq_mdp_star hidden state sequence of the true model; dim = Num_sim * t
+#' @return df data farme including results of forward simulations
 #' @return PP_pl Posterior distribution of each candidate model at each time; dim = Num_sim * t * Num_model
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
@@ -45,16 +40,12 @@ aa = out1[[2]]
 out2 <- run_sim(T,O,R,GAMMA,av,aa,n_true,Num_sim,t,N,initial,n_sample,P)
 
 
-history_star_rew = out2[[1]]
-history_star_act = out2[[2]]
-history_pl_rew = out2[[3]]
-history_pl_act = out2[[4]]
-state_seq_mdp_pl = out2[[5]]
-state_seq_mdp_star = out2[[6]]
-PP_pl = out2[[7]]
+df = out2[[1]]
+PP_pl = out2[[2]]
 
 
-output = list(history_star_rew,history_star_act,history_pl_rew,
-              history_pl_act,state_seq_mdp_pl,state_seq_mdp_star,PP_pl,av,aa)
+output = list(df,PP_pl,av,aa)
+
+
 
 }

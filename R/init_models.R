@@ -18,10 +18,8 @@ init_models <- function(T,O,R,GAMMA,Num_model = length(T),initial = NULL) {
   if(is.null(initial))
     initial <- array(1, dim = Num_s) / Num_s
 
-
   av = vector('list',Num_model)
   aa = vector('list',Num_model)
-
 
   for(i in 1:Num_model){
 
