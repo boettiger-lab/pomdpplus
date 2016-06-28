@@ -55,7 +55,7 @@ R = matrix(c(0,-1,-10,-11),2,2,byrow = TRUE)
 
 Num_model = length(T)
 
-t = 10
+t = 40
 Num_sim = 10
 n_true = 4   # 
 n_sample = 3
@@ -74,16 +74,32 @@ plus_results <- plus(list(T, O, R, GAMMA),t, Num_sim, n_true, n_sample = 3, init
 ```
 
 ```{r}
-
-
-n <- c("true_reward", "true_action", "plus_rewards", "plus_action", "plus_states", "true_states")
-
-
-  dfs <- lapply(1:6, function(i){
-    df <- cbind(t = 0:t, as.data.frame(t(plus_results[[i]])))
-    tidyr::gather_(df, "sim", n[i], names(df)[-1])
-  })
-  df <- Reduce(function(...) merge(...), dfs)
-  
+df <- plus_results[[1]]
+library("ggplot2")
+library("tidyr")
+library("dplyr")
 ```
+
+
+```{r}
+df %>% select(time, sim, plus_state, true_state) %>% gather(model, state, -time, -sim) %>% 
+ggplot(aes(x=time, y=state, color = model, group = interaction(model,sim))) + geom_line()
+```
+
+
+
+```{r}
+df %>% select(time, sim, plus_reward, true_reward) %>% gather(model, reward, -time, -sim) %>% 
+ggplot(aes(x=time, y=reward, color = model, group = interaction(model,sim))) + geom_line()
+```
+
+
+
+```{r}
+df %>% select(time, sim, plus_action, true_action) %>% gather(model, action, -time, -sim) %>% 
+ggplot(aes(x=time, y=action, color = model, group = interaction(model,sim))) + geom_line()
+```
+
+
+
 
