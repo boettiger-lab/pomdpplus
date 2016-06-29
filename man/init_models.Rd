@@ -5,7 +5,7 @@
 \title{function for generating approimation of value function for each candidate model POMDP}
 \usage{
 init_models(T, O, R, GAMMA, Num_model = length(T), initial = NULL,
-  precision = 0.001, timeout = 1000)
+  precision = 0.001)
 }
 \arguments{
 \item{T}{list of transition probabilities matrices for all candidate models; length = Num_model}
@@ -20,9 +20,7 @@ init_models(T, O, R, GAMMA, Num_model = length(T), initial = NULL,
 
 \item{initial}{initial belief over the states}
 
-\item{precision}{precision to run the models}
-
-\item{timeout}{if you want to stop the run based on a specific time}
+\item{precision}{accuracy of value function for generating models}
 }
 \value{
 av list of alpha vectors for all candidate models; length = Num_Model
