@@ -25,8 +25,8 @@ for(i in 1:length(theta)){
 
 R = matrix(c(0,-1,-10,-11),2,2,byrow = TRUE)
 Num_model = length(T)
-seq_act = c(1,1,1,2,1,1,1,2,2,1)
-seq_obs = c(1,1,2,1,1,1,2,2,1,1)
+seq_act = c(2,2,2,2,2,2,2,2,2,2)
+seq_obs = c(1,1,1,1,1,1,1,1,1,1)
 seq = vector("list", length = 2)
 seq[[1]] = seq_obs; seq[[2]] = seq_act
 Num_sim = 10

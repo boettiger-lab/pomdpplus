@@ -8,10 +8,6 @@
 #' @param aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @param Num_sim number of simulation replicates; default = 100
 #' @param seq list containing the sequnce of actions and observations from environment
-<<<<<<< HEAD
-=======
-#' @param t time horizon of the simulaitons; default = 100
->>>>>>> 5b4a900b986399d008454a55098fc4493f051c55
 #' @param N number of candidate models
 #' @param init initial belief of the states
 #' @param n_sample number of samples used for planning; default = 5
@@ -107,13 +103,10 @@ run_sim_seq <- function(T, O, R, GAMMA, av, aa, Num_sim, seq, N = length(T), ini
         b_pl[[i]][m,tt+1,] = out_pl[[2]]
       }
       PP_pl[m,tt+1,] = normalize(PP_pl[m,tt+1,])
-<<<<<<< HEAD
       if(sum(PP_pl[m,tt+1,]==0)){
         stop("None of candidate models represent the provided time series")
       }
-=======
-      
->>>>>>> 5b4a900b986399d008454a55098fc4493f051c55
+
       # taking next action
       
       # true model
@@ -170,22 +163,16 @@ run_sim_seq <- function(T, O, R, GAMMA, av, aa, Num_sim, seq, N = length(T), ini
   names(posterior)[1] = "time"
   names(posterior)[2] = "sim"
   
-<<<<<<< HEAD
   col_post = array(0,dim = c(length(posterior[[1]]),N))
-=======
-  col_post = array(0,dim = c(length(posterior[[1]]),Num_model))
->>>>>>> 5b4a900b986399d008454a55098fc4493f051c55
+
   for(i in 1:length(posterior[[1]])){
     col_post[i,] =  PP_pl[posterior[[2]][i],posterior[[1]][i],]
   }
   
   posterior <- data.frame(posterior,col_post)
   
-<<<<<<< HEAD
+
   for(i in 3:(3+N-1)){
-=======
-  for(i in 3:(3+Num_model-1)){
->>>>>>> 5b4a900b986399d008454a55098fc4493f051c55
     names(posterior)[i] = paste0("model_",(i-2))
   }
   
