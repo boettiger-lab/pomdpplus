@@ -4,14 +4,12 @@
 \alias{plus_seq}
 \title{main code for planning and learning in uncertain systems}
 \usage{
-plus_seq(input, t = 100, Num_sim = 100, seq, n_sample = 5, initial,
-  P = (array(1, dim = length(input[[1]]))/length(input[[1]])))
+plus_seq(input, Num_sim = 100, seq, n_sample = 5, initial, P = (array(1,
+  dim = length(input[[1]]))/length(input[[1]])))
 }
 \arguments{
 \item{input}{A list of transition (itself a list for all candidate models),
 emission (itslef a list for all candidate models), reward matrix, and discount factor.}
-
-\item{t}{time horizon of the problem ; default = 100}
 
 \item{Num_sim}{Number of simulations replicates ; default = 100}
 

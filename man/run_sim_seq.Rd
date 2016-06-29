@@ -31,8 +31,6 @@ run_sim_seq(T, O, R, GAMMA, av, aa, Num_sim, seq, N = length(T), init,
 \item{n_sample}{number of samples used for planning; default = 5}
 
 \item{P}{prior probability of the models ; default is flat prior}
-
-\item{t}{time horizon of the simulaitons; default = 100}
 }
 \value{
 df data farme including results of forward simulations
