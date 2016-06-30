@@ -5,7 +5,8 @@
 \title{main code for planning and learning in uncertain systems}
 \usage{
 plus(input, t = 100, Num_sim = 100, n_true, n_sample = 5, initial,
-  P = (array(1, dim = length(input[[1]]))/length(input[[1]])))
+  P = (array(1, dim = length(input[[1]]))/length(input[[1]])),
+  precision = 0.001)
 }
 \arguments{
 \item{input}{A list of transition (itself a list for all candidate models),
@@ -22,6 +23,8 @@ emission (itslef a list for all candidate models), reward matrix, and discount f
 \item{initial}{initial belief state}
 
 \item{P}{prior probability of the models ; default is flat prior}
+
+\item{precision}{accuracy of value function for generating models}
 }
 \value{
 df data farme including results of forward simulations
