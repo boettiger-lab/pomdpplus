@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+pomdp.policy
+input.pomdpx
