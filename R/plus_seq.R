@@ -4,7 +4,7 @@
 #' emission (itslef a list for all candidate models), reward matrix, and discount factor.
 #' @param Num_sim Number of simulations replicates ; default = 100
 #' @param seq list containing the sequnce of actions and observations from environment
-#' @param n_sample number of sample to use for planning under model uncertainty; default = 5
+#' @param n_sample optional number of sample to use for planning under model uncertainty; If not specified, all model will be used
 #' @param initial initial belief state
 #' @param P prior probability of the models ; default is flat prior
 #' @param precision accuracy of value function for generating models
@@ -13,7 +13,7 @@
 #' @return av list of alpha vectors for all candidate models; length = Num_Model
 #' @return aa list of actions corresponding to alpha vectors for all candidate models; length = Num_Model
 #' @export
-plus_seq <- function(input, Num_sim = 100, seq, n_sample = 5, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]])),precision = 0.001){
+plus_seq <- function(input, Num_sim = 100, seq, n_sample, initial, P = (array(1,dim = length(input[[1]]))/ length(input[[1]])),precision = 0.001){
 
   # extracting model parameters from input
   T = input[[1]]

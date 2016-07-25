@@ -4,7 +4,7 @@
 \alias{plus}
 \title{main code for planning and learning in uncertain systems}
 \usage{
-plus(input, t = 100, Num_sim = 100, n_true, n_sample = 5, initial,
+plus(input, t = 100, Num_sim = 100, n_true, n_sample, initial,
   P = (array(1, dim = length(input[[1]]))/length(input[[1]])),
   precision = 0.001)
 }
@@ -18,7 +18,7 @@ emission (itslef a list for all candidate models), reward matrix, and discount f
 
 \item{n_true}{index of the true model}
 
-\item{n_sample}{number of sample to use for planning under model uncertainty; default = 5}
+\item{n_sample}{optional number of sample to use for planning under model uncertainty; If not specified, all model will be used}
 
 \item{initial}{initial belief state}
 

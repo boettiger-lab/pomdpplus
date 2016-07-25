@@ -28,7 +28,7 @@ run_sim_seq(T, O, R, GAMMA, av, aa, Num_sim, seq, N = length(T), init,
 
 \item{init}{initial belief of the states}
 
-\item{n_sample}{number of samples used for planning; default = 5}
+\item{n_sample}{optional number of sample to use for planning under model uncertainty; If not specified, all model will be used}
 
 \item{P}{prior probability of the models ; default is flat prior}
 }
