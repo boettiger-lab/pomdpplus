@@ -11,7 +11,7 @@
 #' @param t time horizon of the simulaitons; default = 100
 #' @param N number of candidate models
 #' @param init initial belief of the states
-#' @param n_sample number of samples used for planning; default = 5
+#' @param n_sample optional number of sample to use for planning under model uncertainty; If not specified, all model will be used
 #' @param P prior probability of the models ; default is flat prior
 #' @return df data farme including results of forward simulations
 #' @return posterior data frame of Posterior distribution of each candidate model at each time
@@ -64,21 +64,35 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
     for(i in 1:N){
       b_pl[[i]][m,1,] = init
     }
-
-    # sample models for planning
-    ind_sam = discrete(P,n_sample)
-    aa_sam = vector('list',n_sample)
-    av_sam = vector('list',n_sample)
-    T_sam = vector('list',n_sample)
-    belief = array(0, dim = c(n_sample,Num_s))
-    w = array(0, dim = n_sample)
-    for(i in 1:n_sample){
-      T_sam[[i]] = T[[ind_sam[i]]]
-      aa_sam[[i]] = aa[[ind_sam[i]]]
-      av_sam[[i]] = av[[ind_sam[i]]]
-      belief[i,] = b_pl[[ind_sam[i]]][m,1,]
-      w[i] = P[ind_sam[i]]
+    
+    
+    if(missing(n_sample)){
+      aa_sam = aa
+      av_sam = av
+      T_sam  = T
+      belief = array(0, dim = c(N,Num_s))
+      w = array(0, dim = N)
+      for(i in 1:N){
+        belief[i,] = b_pl[[i]][m,1,]
+        w[i] = P[i]
+      }
+    } else{
+      ind_sam = discrete(P,n_sample)
+      aa_sam = vector('list',n_sample)
+      av_sam = vector('list',n_sample)
+      T_sam = vector('list',n_sample)
+      belief = array(0, dim = c(n_sample,Num_s))
+      w = array(0, dim = n_sample)
+      for(i in 1:n_sample){
+        T_sam[[i]] = T[[ind_sam[i]]]
+        aa_sam[[i]] = aa[[ind_sam[i]]]
+        av_sam[[i]] = av[[ind_sam[i]]]
+        belief[i,] = b_pl[[ind_sam[i]]][m,1,]
+        w[i] = P[ind_sam[i]]
+      }
     }
+    # sample models for planning
+    
 
     # taking the first action for true model
     out = Interp_MM(b_star[m,1,],av_star,aa_star)
@@ -126,18 +140,32 @@ run_sim <- function(T, O, R, GAMMA, av, aa, n, Num_sim, t, N = length(T), init, 
       out = Interp_MM(b_star[m,tt+1,],av_star,aa_star)
       history_star_act[m,tt+1] = out[[2]]
 
-
+      
       # PLUS
-      ind_sam = discrete(PP_pl[m,tt+1,],n_sample)
-      w = array(0,dim = c(n_sample))
-      for(i in 1:n_sample){
-        T_sam[[i]] = T[[ind_sam[i]]]
-        aa_sam[[i]] = aa[[ind_sam[i]]]
-        av_sam[[i]] = av[[ind_sam[i]]]
-        belief[i,] = b_pl[[ind_sam[i]]][m,tt+1,]
-        w[i] = PP_pl[m,tt+1,ind_sam[i]]
+      if(missing(n_sample)){
+        aa_sam = aa
+        av_sam = av
+        T_sam  = T
+        belief = array(0, dim = c(N,Num_s))
+        w = array(0, dim = N)
+        for(i in 1:N){
+          belief[i,] = b_pl[[i]][m,1,]
+          w[i] = PP_pl[m,tt+1,i]
+        }
+      } else{
+        ind_sam = discrete(PP_pl[m,tt+1,],n_sample)
+        w = array(0,dim = c(n_sample))
+        for(i in 1:n_sample){
+          T_sam[[i]] = T[[ind_sam[i]]]
+          aa_sam[[i]] = aa[[ind_sam[i]]]
+          av_sam[[i]] = av[[ind_sam[i]]]
+          belief[i,] = b_pl[[ind_sam[i]]][m,tt+1,]
+          w[i] = PP_pl[m,tt+1,ind_sam[i]]
+        }
+        w = normalize(w)
       }
-      w = normalize(w)
+      
+      
       out <- Expectation_pl(belief,av_sam,aa_sam,Num_a,w)
       history_pl_act[m,tt+1] = out[[2]]
 
