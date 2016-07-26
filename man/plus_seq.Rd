@@ -4,8 +4,8 @@
 \alias{plus_seq}
 \title{main code for planning and learning in uncertain systems}
 \usage{
-plus_seq(input, Num_sim = 100, seq, n_sample = 5, initial, P = (array(1,
-  dim = length(input[[1]]))/length(input[[1]])), precision = 0.001)
+plus_seq(input, Num_sim = 100, seq, n_sample, initial, P = (array(1, dim =
+  length(input[[1]]))/length(input[[1]])), precision = 0.001)
 }
 \arguments{
 \item{input}{A list of transition (itself a list for all candidate models),
@@ -15,7 +15,7 @@ emission (itslef a list for all candidate models), reward matrix, and discount f
 
 \item{seq}{list containing the sequnce of actions and observations from environment}
 
-\item{n_sample}{number of sample to use for planning under model uncertainty; default = 5}
+\item{n_sample}{optional number of sample to use for planning under model uncertainty; If not specified, all model will be used}
 
 \item{initial}{initial belief state}
 
