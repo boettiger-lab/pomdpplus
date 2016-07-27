@@ -2,6 +2,39 @@
 Carl Boettiger  
 7/25/2016  
 
+## Outline
+
+
+- Uncertainty Planning
+
+  - Illustrate how to integrate over model uncertainty, compare to ignoring this
+  - Note that comparing fixing the uncertain parameter to prior mean (i.e. ignoring uncertainty) against the case of the proper integration over model uncertainty provides a more objective comparison of the role of accounting for uncertainty than simply comparing the uncertain case to fixing the uncertain parameter arbitrarily. 
+
+  - Compute policy difference and value-of-perfect-information (VOPI) under various scenarios (e.g. select differences in parameters/models that result in very different optimal escapements).  (e.g. presumably VOPI in noise parameters may not be so much?  Is knowing measurement noise or growth noise more valuable?)
+  - Does including a model with a tipping point result in more or less cautious behavior?
+
+- Uncertainty Planning & Learning
+  
+  - Compare passive learning to no learning when VOPI is large.  
+  - How many models can be considered, and how to select which to include? (e.g. those with larger VOPI differences)
+  - Compare passive learning to post-hoc inference? Theoretically identical? Does/can passive learning out-perform direct post-hoc model estimation?
+
+- POMDP cases: Consequences of assuming perfect observability
+  - Compare applying MDP with model uncertainty when reality is POMDP with model uncertainty. Compare policies predicted by each. 
+  - Compare applying MDP (passive) learning with POMDP (passive) learning.  Compare rate of learning & outcomes. 
+
+
+## Current manuscript:
+
+So far, we implement POMDP Planning (parameter & model uncertainty) & POMDP passive learning.  We compare how: (a) assuming a fixed parameter, (b) integrating over uncertainty, and (c) passive learning of the parameters each compare to the case of knowing the true model/parameters (with growth and measurement error still present.)
+
+We do not compare to MDP cases.  
+
+To do: discuss difference between irreducible noise vs uncertainty about models. 
+
+## Examples
+
+
 
 
 
@@ -41,7 +74,7 @@ matrices <- lapply(models, function(model)
 
 
 transition <- lapply(matrices, `[[`, "transition")
-utility <- matrices[[5]]$reward
+utility <- matrices[[1]]$reward
 Tmax <- 20
 
 ## initial prior over models
@@ -54,12 +87,15 @@ qt <- rep(1, length(models)) / length(models)
 transition is an array of probabilities $P(x_{t+1} | x_t, a_t)$ where `transition[i,j,k]` 
 refers to probability for  `x_t = state[i]`, `x_{t+1} = state[j]`, and `a_t = action[k]`.
 
+
+## Planning for Uncertainty
+
 First we consider the optimal solution where we simply average over the uncertainty
 
 
 
 ```r
-value_iteration <- function(transition, utility, qt, Tmax){
+value_iteration <- function(transition, utility, qt = rep(1, length(transition))/length(transition), Tmax){
   
   n_models <- length(transition)
   n_states <- dim(transition[[1]])[1]
@@ -127,9 +163,7 @@ plot(states, states - actions[out$policy], xlab="Population size", ylab="Escapem
 
 
 
-Compare policies arising from different (prior) beliefs (and different models). What is the general impact of parameter uncertainty on the policy?  
-
-In the Ricker model, a larger $r$ means a lower optimal escapement. Compare a uniform prior over $r \in [0,2]$ to certainty that r is either very small (0.4) or very large (1.8): 
+Compare policies arising from different (prior) beliefs (and different models). What is the general impact of parameter uncertainty on the policy?  In the Ricker model, a larger $r$ means a lower optimal escapement. Compare a uniform prior over $r \in [0,2]$ to certainty that r is either very small (0.4) or very large (1.8): 
 
 
 ```r
@@ -172,6 +206,7 @@ data.frame(states = states,
 
 
 
+
 ...
 
 Thus far these are stationary policies -- the policy is a function of the observed state, but given the observation the policy is fixed -- no learning takes place from these observations.  
@@ -192,8 +227,11 @@ bayes_update_qt <- function(qt, x_t, x_t1, a_t, transition){
   qt * P / sum(qt * P)
   
 }
+```
 
 
+
+```r
 ## without harvest, system goes from state 3->3, (states[4] == 3), small r is more likely
 qt1 <- bayes_update_qt(qt, 4, 4, 1, transition)
 plot(seq_along(qt1), qt1)
@@ -205,7 +243,7 @@ qt1 <- bayes_update_qt(qt, 4, 7, 1, transition)
 plot(seq_along(qt1), qt1)
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 ```r
 ## with harvest=2, system goes from state 3->6, large r is most likely
@@ -268,7 +306,7 @@ learning_sim <- function(initial_state_index, transition, utility,
 
 ```r
 true_i <- 3
-ex <- learning_sim(initial_state_index = 7, 
+ex <- learning_sim(initial_state_index = length(states), 
                    transition, utility, 
                    qt = rep(1, length(transition)) / length(transition), 
                    Tmax = 50, 
@@ -292,7 +330,7 @@ ggplot(df) +
     geom_line(aes(r, end), lwd = 1)
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 
 What does the policy appear to look like? We compare this to the optimal policy of the true model (see `certain_low`, above).  
@@ -300,12 +338,13 @@ What does the policy appear to look like? We compare this to the optimal policy 
 
 ```r
 # (note these are really index values)
-ggplot(ex$df, aes(state, state - action)) + 
-  geom_point() +
+ex$df %>% 
+ggplot(aes(state, state - action)) + 
+  geom_point(aes(col=time)) +
   geom_line(data = data.frame(state = 1:length(states), action = certain_low$policy))
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 We can also see how this policy is applied over time for the realized sequence of growth shocks:
 
@@ -315,14 +354,14 @@ We can also see how this policy is applied over time for the realized sequence o
 ggplot(ex$df) +  geom_line(aes(time, state)) + geom_line(aes(time, action), col = "red")
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 ```r
 sum(ex$df$value)
 ```
 
 ```
-## [1] 69.15797
+## [1] 112.4119
 ```
 
 
@@ -348,9 +387,104 @@ ggplot(ex$df, aes(state, state - action)) +
   geom_line(data = data.frame(state = 1:length(states), action = certain_high$policy))
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 
 <!--
 Can we invert this to determine a model prior for which the observed action was optimal?  No, since this is many-to-one, e.g. always at least one model for which the action is optimal.  
 -->
+
+---------
+
+## Tipping points
+
+
+```r
+allen_models <- apply(pars, 1, function(row) 
+  function(x, h){
+     C <- 10
+     s <- pmax(x - h, 0)
+     s * exp(row[["r"]] * (1 - s / row[["K"]]) * (s - C) / row[["K"]] )
+  })
+
+
+
+allen_matrices <- lapply(allen_models, function(model) 
+  appl::fisheries_matrices(states = states, actions = actions, 
+                           observed_states = states, reward_fn = reward_fn,
+                           f = model, sigma_g = sigma_g, sigma_m = sigma_m))
+
+allen_transition <- lapply(allen_matrices, `[[`, "transition")
+
+both_transitions <- c(transition, allen_transition)
+```
+
+
+
+```r
+ricker <- value_iteration(transition, utility, Tmax = 20)
+allen <- value_iteration(allen_transition, utility, Tmax = 20)
+both <- value_iteration(both_transitions, utility, Tmax = 20)
+```
+
+
+
+
+```r
+data.frame(states = states, 
+           ricker = states - actions[ricker$policy], 
+           allen = states - actions[allen$policy], 
+           both = states - actions[both$policy]) %>%
+  tidyr::gather(model, escapement, -states) %>% 
+  ggplot(aes(states, escapement, col=model)) + geom_line()
+```
+
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
+
+
+```r
+true_i <- 16
+ex <- learning_sim(initial_state_index = length(states), 
+                   both_transitions, utility,
+                   Tmax = 50, 
+                   true_transition = both_transitions[[true_i]])
+```
+
+
+
+```r
+q = numeric(length(both_transitions))
+q[true_i] <- 1
+true <- value_iteration(both_transitions, utility, qt = q, Tmax = 50)
+```
+
+
+```r
+ex$df %>% 
+ggplot(aes(state, state - action)) + 
+  geom_point(aes(col=time)) +
+  geom_line(data = data.frame(state = 1:length(states), action = true$policy))
+```
+
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
+
+
+Learns r but has harder time distinguishing between models:
+
+
+```r
+df <- data.frame(model = 1:length(both_transitions), 
+                 quarter = ex$posterior[round(Tmax/4),], 
+                 mid = ex$posterior[round(Tmax/2),], 
+                 threequarter = ex$posterior[round(3*Tmax/4),], 
+                 end = ex$posterior[Tmax,])
+ggplot(df) + 
+    geom_line(aes(model, quarter), alpha=0.25, lwd = 0.25) + 
+    geom_line(aes(model, mid), alpha=0.5, lwd = 0.5) + 
+    geom_line(aes(model, threequarter), alpha=0.75, lwd = 0.75) + 
+    geom_line(aes(model, end), lwd = 1)
+```
+
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+
