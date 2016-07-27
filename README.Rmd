@@ -30,14 +30,16 @@ library("seewave")
 Initialize a simple POMDP model for fisheries:
 
 ```{r}
-states <- 0:10
+states <- 1:10
+actions <- states
+observed_states <- states
 reward_fn <-  function(x, a) pmin(x, a)
-sigma_g = 0.28
-sigma_m = 0.28
+sigma_g <- 0.28
+sigma_m <- 0.28
+discount <- 0.95
 
-## Create a list of models with these parameters
-p <- expand.grid(K = c(4,8), r = c(1/2, 1))
-
+## Create a list of functions, each function providing the model with different parameter combinations
+p <- expand.grid(K = c(1,3), r = c(0.5, 1, 1.5))
 models <- apply(p, 1, function(row) 
   function(x, h){
      s <- pmax(x - h, 0)
@@ -46,40 +48,62 @@ models <- apply(p, 1, function(row)
     
 
 matrices <- lapply(models, function(model) 
-  appl::fisheries_matrices(states = states, actions = states, 
+  appl::fisheries_matrices(states = states, actions = actions, 
                            observed_states = states, reward_fn = reward_fn,
                            f = model, sigma_g = sigma_g, sigma_m = sigma_m))
 
+```
+
+PLUS expects a list of Transition matrices and a separate list of Observation matrices. The reward matrix is the same for all models.
+
+
+```{r}
 T <- lapply(matrices, `[[`, "transition")
 O <- lapply(matrices, `[[`, "observation")
 reward <- matrices[[1]][["reward"]] # same for all models
 ```
 
 
+## Applying to example data
+
+```{r}
+tuna <- read.csv("data/atlantic_bluefin.csv")
+y = round(10 * tuna$biomass / max(tuna$biomass))
+a = ceiling(10 * tuna$catch / max(tuna$biomass)) + 1
+```
+
 
 
 ```{r}
-## In addition to the matrices, to define the POMDP problem we need a discount factor for future rewards
-discount = 0.95
+system.time(
+plus_results <- plus_seq(list(T, O, reward, discount), 
+                     seq = seq,
+                     Num_sim = 100, # Number of simulations to do 
+                     n_sample = 16, # Subsample from the model list, if many models are present
+                     initial = array(1, dim = length(states)) / length(states), # initial states prior, uniform 
+                     precision = 1)
+)
 
-## PLUS parameters
-t = 100       # We'll simulate 100 steps into the future using these modesl
-Num_sim = 20  # We will use 20 replicate simulations
-n_true = 3    # We specify model 3 as the "true model"
-n_sample = 2  # As the number of models could be large, we will sub-sample for efficiency
-
-
-## We use uniform priors for the initial belief over states and over models
-initial = array(1, dim = length(states)) / length(states)
-P = (array(1,dim = length(models))/ length(models))
 ```
+
+
+## Comparing to the correct model
 
 
 Run PLUS:
 
 
 ```{r}
-plus_results <- plus(list(T, O, reward, discount), t, Num_sim, n_true, n_sample, initial, P, precision = 1)
+system.time(
+plus_results <- plus(list(T, O, reward, discount), 
+                     t = 100,      # Number of timesteps to run into the future
+                     Num_sim = 20, # Number of simulations to do 
+                     n_true = 3,   # Which index in the list represents the true model
+                     n_sample = 16, # Subsample from the model list, if many models are present
+                     initial = array(1, dim = length(states)) / length(states), # initial states prior, uniform 
+                     P = (array(1,dim = length(models))/ length(models)),  # Model prior, uniform
+                     precision = 1)
+)
 ```
 
 
@@ -132,4 +156,7 @@ ggplot(P, aes(time, kl)) +
     stat_summary(geom="ribbon", fun.data = mean_se, alpha = 0.1)
 
 ```
+
+
+
 
