@@ -167,21 +167,21 @@ Compare policies arising from different (prior) beliefs (and different models). 
 
 
 ```r
-qt <- rep(1, length=length(transition)) / length(transition)
-unif <- value_iteration(transition, utility, qt, Tmax)
+qt_unif <- rep(1, length=length(transition)) / length(transition)
+unif <- value_iteration(transition, utility, qt_unif, Tmax)
 
-qt <- numeric(length(transition))
-qt[10] <- 1
-certain_high <- value_iteration(transition, utility, qt, Tmax)
+qt_high <- numeric(length(transition))
+qt_high[11] <- 1
+certain_high <- value_iteration(transition, utility, qt_high, Tmax)
 
-qt <- numeric(length(transition))
-qt[6] <- 1
-certain_mean <- value_iteration(transition, utility, qt, Tmax)
+qt_mean <- numeric(length(transition))
+qt_mean[6] <- 1
+certain_mean <- value_iteration(transition, utility, qt_mean, Tmax)
 
 
-qt <- numeric(length(transition))
-qt[3] <- 1
-certain_low <- value_iteration(transition, utility, qt, Tmax)
+qt_low <- numeric(length(transition))
+qt_low[2] <- 1
+certain_low <- value_iteration(transition, utility, qt_low, Tmax)
 ```
 
 Not surprisingly, we see that the optimal policy is intermediate (though more pessimistic than had we assumed prior mean):
@@ -203,7 +203,116 @@ data.frame(states = states,
 
 
 
+### Value of Perfect Information
 
+From this, we can also define the value of perfect information.  
+
+```r
+value_of_policy <- function(policy, transition, utility, qt = rep(1, length(transition))/length(transition), Tmax){
+  n_models <- length(transition)
+  n_states <- dim(transition[[1]])[1]
+  n_actions <- dim(transition[[1]])[3]
+  Vt <- numeric(n_states)
+  V_model <- array(dim=c(n_states, n_models))
+  
+  for (t in (Tmax - 1):1) {
+    Q <- array(0, dim = c(n_states, n_actions))
+    for (i in 1:n_actions) {
+      for(j in 1:n_models){
+         V_model[,j] <- transition[[j]][,,i] %*% Vt
+      }
+      Q[,i] <- utility[, i] + discount * V_model %*% qt
+    }
+    
+    for(i in 1:n_states)
+      Vt[i] <- Q[i,policy[i]]
+    #Vt <- apply(Q, 1, max)
+  } 
+  Vt
+}
+```
+
+
+
+```r
+  low_low = value_of_policy(certain_low$policy, transition, utility, qt_low, Tmax = 200)
+  high_high = value_of_policy(certain_high$policy, transition, utility, qt_high, Tmax = 200)
+
+  unif_low = value_of_policy(unif$policy, transition, utility, qt_low, Tmax = 200) / low_low
+  high_low = value_of_policy(certain_high$policy, transition, utility, qt_low, Tmax = 200)  / low_low
+  
+  unif_high = value_of_policy(unif$policy, transition, utility, qt_high, Tmax = 200) / high_high
+  low_high = value_of_policy(certain_low$policy, transition, utility, qt_high, Tmax = 200)  / high_high
+  
+  data.frame(state = states, unif_low = unif_low, unif_high = unif_high, low_high = low_high, high_low = high_low) %>%
+    gather(model, value, -state) %>%
+    ggplot(aes(state, value, col = model)) + geom_point()
+```
+
+```
+## Warning: Removed 4 rows containing missing values (geom_point).
+```
+
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+  
+  
+
+
+```r
+  n_states <- length(states)
+  unif_low[n_states]
+```
+
+```
+## [1] 0.9595727
+```
+
+```r
+  unif_high[n_states]
+```
+
+```
+## [1] 0.9451418
+```
+
+The expected or average reward from the policy assuming only a uniform prior of r when the true r is high is 94.5141818% of perfect information, and when true r is low, this policy similarly gives 95.9572711% of perfect information. Consequently, additional learning offers the potential of only marginally improved rewards in this scenario over planning for uncertainty without learning.  
+
+However, accounting for model uncertainty can make a substantial difference in this case: using the low estimate of r would give a value of only 76.5369553
+
+
+
+```r
+sim_policy <- function(transition, utility, policy, x0, Tmax){
+  state <- action <- value <- numeric(Tmax)
+  time <- 1:(Tmax-1)
+  state[1] <- x0
+  for(t in time){
+    
+    action[t] <- policy[state[t]] 
+    value[t] <- utility[state[t], action[t]] * discount^(t-1)
+    prob <- transition[state[t], , action[t]]
+    state[t+1] <- sample(1:n_states, 1, prob = prob)
+    
+    
+  }
+  
+  data.frame(time, state, action, value)
+}
+```
+
+
+```r
+data.frame(states = states, 
+           unif = unif$value, 
+           certain_low = certain_low$value, 
+           certain_high = certain_high$value,
+           certain_mean = certain_mean$value) %>% 
+  gather(prior, value, -states) %>%
+  ggplot(aes(states, value, col=prior, lty=prior)) + 
+  geom_line() + ylab("value")
+```
+
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 
 
@@ -235,21 +344,27 @@ bayes_update_qt <- function(qt, x_t, x_t1, a_t, transition){
 ## without harvest, system goes from state 3->3, (states[4] == 3), small r is more likely
 qt1 <- bayes_update_qt(qt, 4, 4, 1, transition)
 plot(seq_along(qt1), qt1)
+```
 
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
-
+```r
 ## without harvest, system goes from state 3->6, middle r is likely
 qt1 <- bayes_update_qt(qt, 4, 7, 1, transition)
 plot(seq_along(qt1), qt1)
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
 
 ```r
 ## with harvest=2, system goes from state 3->6, large r is most likely
 qt1 <- bayes_update_qt(qt, 4, 7, 3, transition)
 plot(seq_along(qt1), qt1)
+```
 
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-13-3.png)<!-- -->
+
+```r
 ## Compare actions that learn more or less? Determine optimal exploration, value aside?
 ```
 
@@ -330,7 +445,7 @@ ggplot(df) +
     geom_line(aes(r, end), lwd = 1)
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 
 What does the policy appear to look like? We compare this to the optimal policy of the true model (see `certain_low`, above).  
@@ -344,7 +459,7 @@ ggplot(aes(state, state - action)) +
   geom_line(data = data.frame(state = 1:length(states), action = certain_low$policy))
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 We can also see how this policy is applied over time for the realized sequence of growth shocks:
 
@@ -354,7 +469,7 @@ We can also see how this policy is applied over time for the realized sequence o
 ggplot(ex$df) +  geom_line(aes(time, state)) + geom_line(aes(time, action), col = "red")
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 ```r
 sum(ex$df$value)
@@ -387,7 +502,7 @@ ggplot(ex$df, aes(state, state - action)) +
   geom_line(data = data.frame(state = 1:length(states), action = certain_high$policy))
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
 
 
 <!--
@@ -439,7 +554,7 @@ data.frame(states = states,
   ggplot(aes(states, escapement, col=model)) + geom_line()
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
 
 
@@ -467,7 +582,7 @@ ggplot(aes(state, state - action)) +
   geom_line(data = data.frame(state = 1:length(states), action = true$policy))
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
 
 
 Learns r but has harder time distinguishing between models:
@@ -486,5 +601,5 @@ ggplot(df) +
     geom_line(aes(model, end), lwd = 1)
 ```
 
-![](parameter-uncertainty_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+![](parameter-uncertainty_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 

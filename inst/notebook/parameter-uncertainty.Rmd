@@ -169,21 +169,21 @@ plot(states, states - actions[out$policy], xlab="Population size", ylab="Escapem
 Compare policies arising from different (prior) beliefs (and different models). What is the general impact of parameter uncertainty on the policy?  In the Ricker model, a larger $r$ means a lower optimal escapement. Compare a uniform prior over $r \in [0,2]$ to certainty that r is either very small (0.4) or very large (1.8): 
 
 ```{r}
-qt <- rep(1, length=length(transition)) / length(transition)
-unif <- value_iteration(transition, utility, qt, Tmax)
+qt_unif <- rep(1, length=length(transition)) / length(transition)
+unif <- value_iteration(transition, utility, qt_unif, Tmax)
 
-qt <- numeric(length(transition))
-qt[10] <- 1
-certain_high <- value_iteration(transition, utility, qt, Tmax)
+qt_high <- numeric(length(transition))
+qt_high[11] <- 1
+certain_high <- value_iteration(transition, utility, qt_high, Tmax)
 
-qt <- numeric(length(transition))
-qt[6] <- 1
-certain_mean <- value_iteration(transition, utility, qt, Tmax)
+qt_mean <- numeric(length(transition))
+qt_mean[6] <- 1
+certain_mean <- value_iteration(transition, utility, qt_mean, Tmax)
 
 
-qt <- numeric(length(transition))
-qt[3] <- 1
-certain_low <- value_iteration(transition, utility, qt, Tmax)
+qt_low <- numeric(length(transition))
+qt_low[2] <- 1
+certain_low <- value_iteration(transition, utility, qt_low, Tmax)
 
 ```
 
@@ -205,7 +205,96 @@ data.frame(states = states,
 
 
 
+### Value of Perfect Information
 
+From this, we can also define the value of perfect information.  
+```{r}
+
+value_of_policy <- function(policy, transition, utility, qt = rep(1, length(transition))/length(transition), Tmax){
+  n_models <- length(transition)
+  n_states <- dim(transition[[1]])[1]
+  n_actions <- dim(transition[[1]])[3]
+  Vt <- numeric(n_states)
+  V_model <- array(dim=c(n_states, n_models))
+  
+  for (t in (Tmax - 1):1) {
+    Q <- array(0, dim = c(n_states, n_actions))
+    for (i in 1:n_actions) {
+      for(j in 1:n_models){
+         V_model[,j] <- transition[[j]][,,i] %*% Vt
+      }
+      Q[,i] <- utility[, i] + discount * V_model %*% qt
+    }
+    
+    for(i in 1:n_states)
+      Vt[i] <- Q[i,policy[i]]
+    #Vt <- apply(Q, 1, max)
+  } 
+  Vt
+}
+```
+
+
+```{r}
+
+  low_low = value_of_policy(certain_low$policy, transition, utility, qt_low, Tmax = 200)
+  high_high = value_of_policy(certain_high$policy, transition, utility, qt_high, Tmax = 200)
+
+  unif_low = value_of_policy(unif$policy, transition, utility, qt_low, Tmax = 200) / low_low
+  high_low = value_of_policy(certain_high$policy, transition, utility, qt_low, Tmax = 200)  / low_low
+  
+  unif_high = value_of_policy(unif$policy, transition, utility, qt_high, Tmax = 200) / high_high
+  low_high = value_of_policy(certain_low$policy, transition, utility, qt_high, Tmax = 200)  / high_high
+  
+  data.frame(state = states, unif_low = unif_low, unif_high = unif_high, low_high = low_high, high_low = high_low) %>%
+    gather(model, value, -state) %>%
+    ggplot(aes(state, value, col = model)) + geom_point()
+```
+  
+  
+
+```{r}
+  n_states <- length(states)
+  unif_low[n_states]
+  unif_high[n_states]
+```
+
+The expected or average reward from the policy assuming only a uniform prior of r when the true r is high is `r 100 * unif_high[n_states]`% of perfect information, and when true r is low, this policy similarly gives `r 100 * unif_low[n_states]`% of perfect information. Consequently, additional learning offers the potential of only marginally improved rewards in this scenario over planning for uncertainty without learning.  
+
+However, accounting for model uncertainty can make a substantial difference in this case: using the low estimate of r would give a value of only `r 100 * low_high[n_states]`
+
+
+```{r}
+sim_policy <- function(transition, utility, policy, x0, Tmax){
+  state <- action <- value <- numeric(Tmax)
+  time <- 1:(Tmax-1)
+  state[1] <- x0
+  for(t in time){
+    
+    action[t] <- policy[state[t]] 
+    value[t] <- utility[state[t], action[t]] * discount^(t-1)
+    prob <- transition[state[t], , action[t]]
+    state[t+1] <- sample(1:n_states, 1, prob = prob)
+    
+    
+  }
+  
+  data.frame(time, state, action, value)
+}
+```
+
+```{r}
+data.frame(states = states, 
+           unif = unif$value, 
+           certain_low = certain_low$value, 
+           certain_high = certain_high$value,
+           certain_mean = certain_mean$value) %>% 
+  gather(prior, value, -states) %>%
+  ggplot(aes(states, value, col=prior, lty=prior)) + 
+  geom_line() + ylab("value")
+
+
+```
 
 
 
@@ -261,7 +350,7 @@ Learn `r` passively over time:
 
 ```{r}
 ## Note that action & state are all given as index values to their respective vectors
-learning_sim <- function(initial_state_index, transition, utility, 
+mdp_learning <- function(initial_state_index, transition, utility, 
                          qt = rep(1, length(transition)) / length(transition), 
                          Tmax = 20, true_transition){
 
@@ -304,7 +393,7 @@ learning_sim <- function(initial_state_index, transition, utility,
 
 ```{r}
 true_i <- 3
-ex <- learning_sim(initial_state_index = length(states), 
+ex <- mdp_learning(initial_state_index = length(states), 
                    transition, utility, 
                    qt = rep(1, length(transition)) / length(transition), 
                    Tmax = 50, 
@@ -353,7 +442,7 @@ A second example, with much higher r as the true model:
 
 ```{r}
 true_i <- 10
-ex <- learning_sim(initial_state_index = length(states), 
+ex <- mdp_learning(initial_state_index = length(states), 
                    transition, utility, 
                    qt = rep(1, length(transition)) / length(transition), 
                    Tmax = 50, 
@@ -417,7 +506,7 @@ data.frame(states = states,
 
 ```{r}
 true_i <- 16
-ex <- learning_sim(initial_state_index = length(states), 
+ex <- mdp_learning(initial_state_index = length(states), 
                    both_transitions, utility,
                    Tmax = 50, 
                    true_transition = both_transitions[[true_i]])
