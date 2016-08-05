@@ -2,11 +2,11 @@
 Milad Memarzadeh
 7/25/2016  
 
-Num_s = 20
+Num_s = 20; sigma_g = 0.2, sigma_m = 0.2; Num_a = 21; Num_z = 20
 
-r \in {0.4,1,2}
+r \in {0.4,1,2}, K = 18
 
-K \in {10,14,18}
+K \in {10,14,18}, r = 1
 
 ## Policy
 
