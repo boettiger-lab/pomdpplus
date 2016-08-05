@@ -22,6 +22,9 @@ K \in {10,14,18}
 
 ## relative Values
 
+### r
 ![](parameter-uncertainty_files/figure-html/relV_r.png)
+
+### K
 
 ![](parameter-uncertainty_files/figure-html/relV_K.png)
