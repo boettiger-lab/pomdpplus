@@ -34,27 +34,31 @@ reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
 
-f1 <- function(x, h, r = 1, K = 15){
-  s <- pmax(x - h, 0)
-  s * exp(r * (1 - s / K) )
-}
 
-f2 <- function(x, h, r = 1, K = 10){
-  s <- pmax(x - h, 0)
-  s * exp(r * (1 - s / K) )
-}
+Ks <-  seq(5, 20, length.out = 10)
+K_models <- lapply(Ks, function(K) 
+  function(x, h){
+     r <- 1
+     s <- pmax(x - h, 0)
+     s * exp(r * (1 - s / K) )
+  })
 
+models <- lapply(K_models, function(model) 
+    appl::fisheries_matrices(states = states, actions = actions, 
+                             observed_states = states, reward_fn = reward_fn,
+                             f = model, sigma_g = sigma_g, sigma_m = sigma_m))
+
+
+model_prior = rep(1, length(models)) / length(models)
 
 ```
 
 
 ```{r}
 
-m1 <- fisheries_matrices(states, actions, obs, reward_fn, f1, sigma_g, sigma_m)
-m2 <- fisheries_matrices(states, actions, obs, reward_fn, f2, sigma_g, sigma_m)
+m1 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[2], sigma_g, sigma_m)
+m2 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[9], sigma_g, sigma_m)
 
-models <- list(m1,m2)
-model_prior <- c(0.5, 0.5)
 ```
 
 
@@ -65,12 +69,6 @@ soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precis
 soln_2 <- pomdp_solve(m2$transition, m2$observation, m2$reward, discount, precision = 1)
 ```
 
-
-```{r}
-rbind(data.frame(model = "m1", soln_1),
-      data.frame(model = "m2", soln_2)) %>%
-ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_point()
-```
 
 
 ## Planning solution
