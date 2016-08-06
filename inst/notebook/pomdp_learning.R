@@ -26,7 +26,12 @@ init_models <- function(models, discount, verbose = TRUE, mc.cores = 1L, ...){
 compute_policy <- function(Qs, model_prior){
 
   ## Compute optimal policy based on alpha vectors, V(b) = max_i \sum_x b(x) alpha_i(x)
-  EV <- do.call(`+`, lapply(1:length(Qs), function(i) as.matrix(Qs[[i]]) * model_prior[i]))
+  EV <- array(0, dim(Qs[[1]]))
+  for(i in 1:length(Qs)){
+    EV <- EV + as.matrix(Qs[[i]]) * model_prior[i]
+  }
+
+
   value <- apply(EV, 1, max)
   policy <- apply(EV, 1, function(x) which.max(x))
 
