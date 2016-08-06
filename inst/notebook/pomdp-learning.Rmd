@@ -14,6 +14,10 @@ library("ggplot2")
 knitr::opts_chunk$set(cache = TRUE)
 ```
 
+```{r}
+source("pomdp_learning.R")
+```
+
 
 ## Problem definition
 
@@ -38,20 +42,22 @@ discount <- 0.95
 ```{r}
 m1 <- fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m)
 
-f <- function(x, h, r = 2, K = 15){
+f <- function(x, h, r = 0.5, K = 15){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
 
 m2 <- fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m)
 
-models <- list(m1,m1)
+models <- list(m1,m2)
 model_prior <- c(1, 0.)
 ```
 
 
+## POMDP solution, model 1
+
 ```{r}
-soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precision = .1)
+soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precision = 1)
 ```
 
 
@@ -60,12 +66,10 @@ ggplot(soln_1, aes(states[state], states[state] - actions[policy])) + geom_point
 ```
 
 
-```{r}
-Qs <- init_models(list(m1), discount, precision = 15)
-```
+## Planning solution
 
 ```{r}
-soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores = 2L, precision = 15)
+soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores = 1L, precision = 1)
 ```
 
 
@@ -73,3 +77,4 @@ soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores =
 
 ggplot(soln, aes(states[state], states[state] - actions[policy])) + geom_point()
 ```
+

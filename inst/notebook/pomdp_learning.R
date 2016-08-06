@@ -5,20 +5,18 @@ pomdp_planning <- function(models, discount, model_prior, verbose = TRUE, mc.cor
   compute_policy(Qs, model_prior)
 }
 
-
 get_Q <- function(alpha, alpha_action, n_a){
   n_x <- dim(alpha)[[1]]
-  Q <- unname(as.data.frame(
+  unname(as.data.frame(
     lapply(1:n_a, function(i){
       j <- which(alpha_action == i)[1]
       if(!is.na(j))
         alpha[, j]
       else
         rep(0, n_x)
-    })))
-  Q
+    })
+  ))
 }
-
 
 
 init_models <- function(models, discount, verbose = TRUE, mc.cores = 1L, ...){
@@ -30,7 +28,7 @@ init_models <- function(models, discount, verbose = TRUE, mc.cores = 1L, ...){
 
     result <- run_pomdp(m$transition, m$observation, m$reward, discount, initial, verbose, ...)
 
-    V <- t(result$alpha) %*% m$observation[,,1]  ## Note the assumption that observation is indep of action
+    V <- t(t(result$alpha) %*% m$observation[,,1])  ## Note the assumption that observation is indep of action
     get_Q(V, result$alpha_action, dim(m$observation)[[3]])
 
   }, mc.cores = mc.cores)
@@ -41,8 +39,8 @@ compute_policy <- function(Qs, model_prior){
 
   ## Compute optimal policy based on alpha vectors, V(b) = max_i \sum_x b(x) alpha_i(x)
   EV <- do.call(`+`, lapply(1:length(Qs), function(i) as.matrix(Qs[[i]]) * model_prior[i]))
-  value <- apply(EV, 2, max)
-  policy <- apply(EV, 2, function(x) which.max(x))
+  value <- apply(EV, 1, max)
+  policy <- apply(EV, 1, function(x) which.max(x))
 
   ## Note that policy is given as index numbers to the action vector, and state as index numbers to the states vector
   state <- 1:dim(Qs[[1]])[[1]] # For plotting convenience
