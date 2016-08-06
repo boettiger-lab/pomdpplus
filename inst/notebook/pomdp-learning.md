@@ -66,25 +66,29 @@ reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
 
-f1 <- function(x, h, r = 1, K = 15){
-  s <- pmax(x - h, 0)
-  s * exp(r * (1 - s / K) )
-}
 
-f2 <- function(x, h, r = 1, K = 10){
-  s <- pmax(x - h, 0)
-  s * exp(r * (1 - s / K) )
-}
+Ks <-  seq(5, 20, length.out = 10)
+K_models <- lapply(Ks, function(K) 
+  function(x, h){
+     r <- 1
+     s <- pmax(x - h, 0)
+     s * exp(r * (1 - s / K) )
+  })
+
+models <- lapply(K_models, function(model) 
+    appl::fisheries_matrices(states = states, actions = actions, 
+                             observed_states = states, reward_fn = reward_fn,
+                             f = model, sigma_g = sigma_g, sigma_m = sigma_m))
+
+
+model_prior = rep(1, length(models)) / length(models)
 ```
 
 
 
 ```r
-m1 <- fisheries_matrices(states, actions, obs, reward_fn, f1, sigma_g, sigma_m)
-m2 <- fisheries_matrices(states, actions, obs, reward_fn, f2, sigma_g, sigma_m)
-
-models <- list(m1,m2)
-model_prior <- c(0.5, 0.5)
+m1 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[2]], sigma_g, sigma_m)
+m2 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[9]], sigma_g, sigma_m)
 ```
 
 
@@ -96,7 +100,7 @@ soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precis
 ```
 
 ```
-## load time: 0.05 sec, init time: 0.15 sec, run time: 1.67 sec, final precision: 0.942936 end_condition:   target precision reached
+## load time: 0.06 sec, init time: 0.09 sec, run time: 0.12 sec, final precision: 0.949057 end_condition:   target precision reached
 ```
 
 ```r
@@ -104,18 +108,9 @@ soln_2 <- pomdp_solve(m2$transition, m2$observation, m2$reward, discount, precis
 ```
 
 ```
-## load time: 0.04 sec, init time: 0.1 sec, run time: 0.29 sec, final precision: 0.954564 end_condition:   target precision reached
+## load time: 0.07 sec, init time: 0.2 sec, run time: 2.64 sec, final precision: 0.988588 end_condition:   target precision reached
 ```
 
-
-
-```r
-rbind(data.frame(model = "m1", soln_1),
-      data.frame(model = "m2", soln_2)) %>%
-ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_point()
-```
-
-![](pomdp-learning_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 
 ## Planning solution
@@ -126,11 +121,43 @@ soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores =
 ```
 
 ```
-## load time: 0.06 sec, init time: 0.16 sec, run time: 1.54 sec, final precision: 0.942936 end_condition:   target precision reached
+## load time: 0.06 sec, init time: 0.07 sec, run time: 0.08 sec, final precision: 0.877313 end_condition:   target precision reached
 ```
 
 ```
-## load time: 0.04 sec, init time: 0.11 sec, run time: 0.28 sec, final precision: 0.954564 end_condition:   target precision reached
+## load time: 0.07 sec, init time: 0.08 sec, run time: 0.12 sec, final precision: 0.949057 end_condition:   target precision reached
+```
+
+```
+## load time: 0.06 sec, init time: 0.08 sec, run time: 0.15 sec, final precision: 0.919978 end_condition:   target precision reached
+```
+
+```
+## load time: 0.06 sec, init time: 0.11 sec, run time: 0.21 sec, final precision: 0.954564 end_condition:   target precision reached
+```
+
+```
+## load time: 0.07 sec, init time: 0.13 sec, run time: 0.31 sec, final precision: 0.985769 end_condition:   target precision reached
+```
+
+```
+## load time: 0.06 sec, init time: 0.12 sec, run time: 0.52 sec, final precision: 0.973586 end_condition:   target precision reached
+```
+
+```
+## load time: 0.07 sec, init time: 0.13 sec, run time: 0.92 sec, final precision: 0.942936 end_condition:   target precision reached
+```
+
+```
+## load time: 0.06 sec, init time: 0.14 sec, run time: 1.43 sec, final precision: 0.989347 end_condition:   target precision reached
+```
+
+```
+## load time: 0.07 sec, init time: 0.15 sec, run time: 2.47 sec, final precision: 0.988588 end_condition:   target precision reached
+```
+
+```
+## load time: 0.07 sec, init time: 0.15 sec, run time: 1.65 sec, final precision: 0.983279 end_condition:   target precision reached
 ```
 
 
@@ -148,12 +175,12 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = model, pch 
 ```
 
 ```
-## Warning: Removed 2 rows containing missing values (geom_point).
+## Warning: Removed 5 rows containing missing values (geom_point).
 ```
 
 ```
-## Warning: Removed 2 rows containing missing values (geom_path).
+## Warning: Removed 5 rows containing missing values (geom_path).
 ```
 
-![](pomdp-learning_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](pomdp-learning_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 

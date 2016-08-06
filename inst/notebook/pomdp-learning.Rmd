@@ -56,8 +56,8 @@ model_prior = rep(1, length(models)) / length(models)
 
 ```{r}
 
-m1 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[2], sigma_g, sigma_m)
-m2 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[9], sigma_g, sigma_m)
+m1 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[2]], sigma_g, sigma_m)
+m2 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[9]], sigma_g, sigma_m)
 
 ```
 
