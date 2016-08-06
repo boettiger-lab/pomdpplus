@@ -5,18 +5,6 @@ pomdp_planning <- function(models, discount, model_prior, verbose = TRUE, mc.cor
   compute_policy(Qs, model_prior)
 }
 
-get_Q <- function(alpha, alpha_action, n_a){
-  n_x <- dim(alpha)[[1]]
-  unname(as.data.frame(
-    lapply(1:n_a, function(i){
-      j <- which(alpha_action == i)[1]
-      if(!is.na(j))
-        alpha[, j]
-      else
-        rep(0, n_x)
-    })
-  ))
-}
 
 
 init_models <- function(models, discount, verbose = TRUE, mc.cores = 1L, ...){
@@ -49,6 +37,20 @@ compute_policy <- function(Qs, model_prior){
 }
 
 
+get_Q <- function(alpha, alpha_action, n_a){
+  n_x <- dim(alpha)[[1]]
+  unname(as.data.frame(
+    lapply(1:n_a, function(i){
+      j <- which(alpha_action == i)[1]
+      if(!is.na(j))
+        alpha[, j]
+      else
+        rep(0, n_x)
+    })
+  ))
+}
+
+###############
 
 pomdp_learning <- function(x0, models, model_prior = NULL, Tmax = 20,
                            true_transition, true_observation, true_utility = NULL){
