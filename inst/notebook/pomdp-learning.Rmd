@@ -34,61 +34,98 @@ reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
 
-f1 <- function(x, h, r = 1, K = 33){
-  s <- pmax(x - h, 0)
-  s * exp(r * (1 - s / K) )
-}
-
-f2 <- function(x, h, r = 1, K = 23){
+K1 <- function(x, h, r = 1, K = 20){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
 
 
+K2 <- function(x, h, r = 1, K = 25){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+
+
+K3 <- function(x, h, r = 1, K = 30){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+
+
+r1 <- function(x, h, r = 0.2, K = 30){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+r2 <- function(x, h, r = 1, K = 30){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+
+r3 <- function(x, h, r = 1.8, K = 30){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+Ks <- list(K1, K2, K3)
+rs <- list(r1, r2, r3)
+
+
 ```
 
 
 ```{r}
 
-m1 <- fisheries_matrices(states, actions, obs, reward_fn, f1, sigma_g, sigma_m)
-m2 <- fisheries_matrices(states, actions, obs, reward_fn, f2, sigma_g, sigma_m)
+K_models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
+r_models <- lapply(rs, function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 
-models <- list(m1,m2)
-model_prior <- c(0.5, 0.5)
-```
-
-
-## POMDP solution, model 1
-
-```{r}
-soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precision = 1)
-soln_2 <- pomdp_solve(m2$transition, m2$observation, m2$reward, discount, precision = 1)
-```
-
-
-```{r}
-rbind(data.frame(model = "m1", soln_1),
-      data.frame(model = "m2", soln_2)) %>%
-ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_point()
 ```
 
 
 ## Planning solution
 
+Compute Q matrices using pomdpsol for each model (intensive)
+
 ```{r}
-soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores = 1L, precision = 1)
+K_Qs <- init_models(K_models, discount, verbose, precision = 1)
+```
+
+```{r}
+r_Qs <- init_models(K_models, discount, verbose, precision = 1)
+```
+
+Use Qs to compute policy given model priors, for comparison:
+
+```{r}
+compare_policies <- function(Qs){
+  low <- compute_policy(Qs, c(1, 0, 0))
+  unif <- compute_policy(Qs, c(1/3, 1/3, 1/3))
+  high <- compute_policy(Qs, c(0, 1/3, 1))
+  
+  dplyr::bind_rows(low, unif, high, .id = "prior")
+}
+
 ```
 
 
 ```{r}
-df <- 
-  rbind(data.frame(model = "m1", soln_1),
-      data.frame(model = "m2", soln_2),
-      data.frame(model = "unif", soln))
+df <- compare_policies(K_Qs)
 
-ggplot(df, aes(states[state], states[state] - actions[policy], col = model, pch = model)) + 
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
-  geom_line() + 
-  ylim(0,15)
+  geom_line()
+```
+
+
+
+```{r}
+df <- compare_policies(r_Qs)
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line() 
 ```
 
