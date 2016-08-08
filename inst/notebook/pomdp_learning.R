@@ -22,7 +22,7 @@ init_models <- function(models, discount, states_prior = NULL,
 
 }
 
-compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NULL){
+compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NULL, a_0 = 1){
 
   n_states <- dim(alphas[[1]])[[1]]
   n_actions <- dim(alphas[[1]])[[2]]
@@ -42,7 +42,7 @@ compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NU
 
     ## belief[k,i] is belief system is in state k given observed state i
     belief <- vapply(1:n_obs, function(i){
-      b <- states_prior %*% t(m$transition[,,j]) * m$observation[,i,j]
+      b <- states_prior %*% t(m$transition[,,a_0]) * m$observation[,i,a_0]
       b / sum(b)
     }, numeric(n_states))
 

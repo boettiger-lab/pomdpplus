@@ -28,7 +28,7 @@ actions <- states
 obs <- states
 
 sigma_g <- sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
-sigma_m <- sigma_g
+sigma_m <- sigma_g / 10
 
 reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
@@ -61,7 +61,7 @@ models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward
 Compute Q matrices using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
 
 ```{r}
-alphas <- init_models(K_models, discount, precision = 1)
+alphas <- init_models(models, discount, precision = 0.5)
 ```
 
 
