@@ -1,10 +1,9 @@
 ## Assumes through-out that observation does not depend on action, and thus policy is determiend by observation alone and not observation + previous action
 
-pomdp_planning <- function(models, discount, model_prior, states_prior = NULL, verbose = TRUE, mc.cores = 1L, ...){
-  alphas <- init_models(models = models, discount = discount, states_prior = states_prior, verbose = verbose, mc.cores = mc.cores, ...)
-  compute_policy(alphas, model_prior, states_prior, models)
+pomdp_planning <- function(models, discount, model_prior = NULL, states_prior = NULL, verbose = TRUE, mc.cores = 1L, ...){
+  alphas <- init_models(models, discount, states_prior, verbose, mc.cores, ...)
+  compute_policy(alphas, models, model_prior, states_prior)
 }
-
 
 
 init_models <- function(models, discount, states_prior = NULL,
@@ -13,46 +12,50 @@ init_models <- function(models, discount, states_prior = NULL,
   n_states <- dim(models[[1]]$transition)[[1]]
   n_actions <- dim(models[[1]]$transition)[[3]]
 
-  if(is.null(states_prior))
-    states_prior <- vapply(1:length(models), function(i) rep(1, n_states) / n_states, numeric(n_states))
-
+  if(is.null(states_prior)){
+    states_prior <- rep(1, n_states) / n_states
+  }
 
   parallel::mclapply(1:length(models), function(i){
 
-    belief <- states_prior[,i]
-    result <- run_pomdp(m$transition, m$observation, m$reward, discount, belief, verbose, ...)
-
+    result <- run_pomdp(m$transition, m$observation, m$reward, discount, states_prior, verbose, ...)
     regularize_alpha(result$alpha, result$alpha_action, n_actions)
-
 
   }, mc.cores = mc.cores)
 
 }
 
-compute_policy <- function(alphas, model_prior, states_prior, models){
+compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NULL){
 
   n_states <- dim(alphas[[1]])[[1]]
   n_actions <- dim(alphas[[1]])[[2]]
+  n_obs <- dim(models[[1]]$observation)[[2]]
+  n_models <- length(models)
+  if(is.null(states_prior)){
+    states_prior <- rep(1, n_states) / n_states
+  }
+  if(is.null(model_prior)){
+    model_prior <- rep(1, n_models) / n_models
+  }
 
-  ## Compute expected value averaged across belief in models and states
+  ## EV[i,j] is value of obs_state[i] when taking action j
   EV <- array(0, dim = c(n_states, n_actions))
-  for(i in 1:length(alphas)){
+  for(j in 1:n_models){
+    m <- models[[j]]
 
-    m <- models[[i]]
+    ## belief[k,i] is belief system is in state k given observed state i
+    belief <- vapply(1:n_obs, function(i){
+      b <- states_prior %*% t(m$transition[,,j]) * m$observation[,i,j]
+      b / sum(b)
+    }, numeric(n_states))
 
-    ## belief is an (x_t1, y_t1) array, column j giving the belief having observed-state j
-    belief <- m$transition[,,i] %*% states_prior[,i] %*% m$observation[,,i] * model_prior[i]
-
-    # (y_t1, x_t1) * (x_t1, a_t)
-    EV <- EV + t(belief) %*% alphas[[i]]
-
-  })
-
+    ## average value (b_x alpha_x) over models:  E( E( b_m(x) alpha_m(x) ) P(m)
+    EV <- EV + t(belief) %*% alphas[[i]]  * model_prior[j]
+  }
 
   ## Determine optimal action and associated value
   value <- apply(EV, 1, max)
   policy <- apply(EV, 1, function(x) which.max(x))
-
 
   data.frame(policy, value, state = 1:n_states)
 
@@ -70,15 +73,13 @@ compute_policy <- function(alphas, model_prior, states_prior, models){
 ## So we create a new data.frame whose i'th column is the alpha vector for the i'th action
 regularize_alpha <- function(alpha, alpha_action, n_a){
   n_x <- dim(alpha)[[1]]
-  unname(as.data.frame(
-    lapply(1:n_a, function(i){
+  vapply(1:n_a, function(i){
       j <- which(alpha_action == i)[1]
       if(!is.na(j))
         alpha[, j]
       else
         rep(0, n_x)
-    })
-  ))
+    }, numeric(n_x))
 }
 
 
