@@ -6,21 +6,18 @@ pomdp_planning <- function(models, discount, model_prior = NULL, states_prior = 
 }
 
 
+## Simply a parallel loop over run_pomdp for each model
 init_models <- function(models, discount, states_prior = NULL,
                           verbose = TRUE, mc.cores = 1L, ...){
 
   n_states <- dim(models[[1]]$transition)[[1]]
   n_actions <- dim(models[[1]]$transition)[[3]]
-
   if(is.null(states_prior)){
     states_prior <- rep(1, n_states) / n_states
   }
 
   parallel::mclapply(1:length(models), function(i){
-
-    result <- run_pomdp(m$transition, m$observation, m$reward, discount, states_prior, verbose, ...)
-    regularize_alpha(result$alpha, result$alpha_action, n_actions)
-
+    run_pomdp(m$transition, m$observation, m$reward, discount, states_prior, verbose, ...)
   }, mc.cores = mc.cores)
 
 }
@@ -60,31 +57,6 @@ compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NU
   data.frame(policy, value, state = 1:n_states)
 
 }
-
-
-
-## POMDP solver returns a data.frame whose columns are the alpha vectors.
-## The action corresponding to each vector is given by alpha_action[i].
-##
-## Each alpha vector is of length n_states,  but there is not one vector for each
-## action -- some actions are not represented, others may be repeated (depends on #
-## of piecewise linear segments used to approximate value)
-##
-## So we create a new data.frame whose i'th column is the alpha vector for the i'th action
-regularize_alpha <- function(alpha, alpha_action, n_a){
-  n_x <- dim(alpha)[[1]]
-  vapply(1:n_a, function(i){
-      j <- which(alpha_action == i)[1]
-      if(!is.na(j))
-        alpha[, j]
-      else
-        rep(0, n_x)
-    }, numeric(n_x))
-}
-
-
-
-
 
 
 ###############
