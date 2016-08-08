@@ -29,23 +29,32 @@ init_models <- function(models, discount, states_prior = NULL,
 
 }
 
-compute_policy <- function(alphas, model_prior, states_prior){
+compute_policy <- function(alphas, model_prior, states_prior, models){
 
-  belief <- states_prior
+  n_states <- dim(alphas[[1]])[[1]]
+  n_actions <- dim(alphas[[1]])[[2]]
 
-  V <- t(t(alphas) %*% m$observation[,,1])  ## Note the assumption that observation is indep of action
-  ## Compute optimal policy based on alpha vectors, V(b) = max_i \sum_x b(x) alpha_i(x)
-  EV <- array(0, dim(Qs[[1]]))
-  for(i in 1:length(Qs)){
-    EV <- EV + as.matrix(Qs[[i]]) * model_prior[i]
-  }
+  ## Compute expected value averaged across belief in models and states
+  EV <- array(0, dim = c(n_states, n_actions))
+  for(i in 1:length(alphas)){
 
+    m <- models[[i]]
+
+    ## belief is an (x_t1, y_t1) array, column j giving the belief having observed-state j
+    belief <- m$transition[,,i] %*% states_prior[,i] %*% m$observation[,,i] * model_prior[i]
+
+    # (y_t1, x_t1) * (x_t1, a_t)
+    EV <- EV + t(belief) %*% alphas[[i]]
+
+  })
+
+
+  ## Determine optimal action and associated value
   value <- apply(EV, 1, max)
   policy <- apply(EV, 1, function(x) which.max(x))
 
-  ## Note that policy is given as index numbers to the action vector, and state as index numbers to the states vector
-  state <- 1:dim(Qs[[1]])[[1]] # For plotting convenience
-  data.frame(policy, value, state)
+
+  data.frame(policy, value, state = 1:n_states)
 
 }
 
