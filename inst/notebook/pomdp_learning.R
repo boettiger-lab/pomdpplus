@@ -16,7 +16,7 @@ init_models <- function(models, discount, states_prior = NULL,
     states_prior <- rep(1, n_states) / n_states
   }
 
-  parallel::mclapply(1:length(models), function(i){
+  parallel::mclapply(models, function(m){
     run_pomdp(m$transition, m$observation, m$reward, discount, states_prior, verbose, ...)
   }, mc.cores = mc.cores)
 
@@ -47,7 +47,7 @@ compute_policy <- function(alphas, models, model_prior = NULL, states_prior = NU
     }, numeric(n_states))
 
     ## average value (b_x alpha_x) over models:  E( E( b_m(x) alpha_m(x) ) P(m)
-    EV <- EV + t(belief) %*% alphas[[i]]  * model_prior[j]
+    EV <- EV + t(belief) %*% alphas[[j]]  * model_prior[j]
   }
 
   ## Determine optimal action and associated value
