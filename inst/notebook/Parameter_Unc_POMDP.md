@@ -14,7 +14,7 @@ K \in {10,14,18}, r = 1
 
 ![](parameter-uncertainty_files/figure-html/MDP_Pol_r.png)
 
-![](parameter-uncertainty_files/figure-html/MDP_Pol_K.png)
+![](parameter-uncertainty_files/figure-html/MDP_Pol_k.png)
 
 
 ### POMDP
