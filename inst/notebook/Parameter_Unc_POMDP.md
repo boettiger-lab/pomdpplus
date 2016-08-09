@@ -10,11 +10,31 @@ K \in {10,14,18}, r = 1
 
 ## Policy
 
+### MDP
+
+![](parameter-uncertainty_files/figure-html/MDP_Pol_r.png)
+
+![](parameter-uncertainty_files/figure-html/MDP_Pol_K.png)
+
+
+### POMDP
+
 ![](parameter-uncertainty_files/figure-html/Pol_r.png)
 
 ![](parameter-uncertainty_files/figure-html/Pol_K.png)
 
+
+
 ## Value
+
+### MDP
+
+![](parameter-uncertainty_files/figure-html/MDP_Val_r.png)
+
+![](parameter-uncertainty_files/figure-html/MDP_Val_K.png)
+
+
+### POMDP
 
 ![](parameter-uncertainty_files/figure-html/Val_r.png)
 
