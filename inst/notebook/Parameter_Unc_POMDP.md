@@ -67,7 +67,7 @@ K \in {10,14,18}, r = 1
 ### Model with K = 18, r = 1
 
 #### Belief time 1 to 10
-![](parameter-uncertainty_files/figure-html/k10_b_10.png)
+![](parameter-uncertainty_files/figure-html/k10_b10.png)
 
 #### Belief time 1 to 100 by 25
 ![](parameter-uncertainty_files/figure-html/k10_b_100.png)
