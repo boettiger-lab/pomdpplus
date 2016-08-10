@@ -48,3 +48,53 @@ K \in {10,14,18}, r = 1
 ### K
 
 ![](parameter-uncertainty_files/figure-html/relV_K.png)
+
+
+## Forward Simulations
+
+### Model with K = 10, r = 1
+
+#### Belief time 1 to 10
+![](parameter-uncertainty_files/figure-html/k2_b_10.png)
+
+#### Belief time 1 to 100 by 25
+![](parameter-uncertainty_files/figure-html/k2_b_100.png)
+
+#### trajectories
+![](parameter-uncertainty_files/figure-html/k2_traj.png)
+
+
+### Model with K = 18, r = 1
+
+#### Belief time 1 to 10
+![](parameter-uncertainty_files/figure-html/k10_b_10.png)
+
+#### Belief time 1 to 100 by 25
+![](parameter-uncertainty_files/figure-html/k10_b_100.png)
+
+#### trajectories
+![](parameter-uncertainty_files/figure-html/k10_traj.png)
+
+
+### Model with K = 18, r = 2
+
+#### Belief time 1 to 10
+![](parameter-uncertainty_files/figure-html/r10_b_10.png)
+
+#### Belief time 1 to 100 by 25
+![](parameter-uncertainty_files/figure-html/r10_b_100.png)
+
+#### trajectories
+![](parameter-uncertainty_files/figure-html/r10_traj.png)
+
+
+### Model with K = 10, r = 1.6
+
+#### Belief time 1 to 10
+![](parameter-uncertainty_files/figure-html/r8_b_10.png)
+
+#### Belief time 1 to 100 by 25
+![](parameter-uncertainty_files/figure-html/r8_b_100.png)
+
+#### trajectories
+![](parameter-uncertainty_files/figure-html/r8_traj.png)
