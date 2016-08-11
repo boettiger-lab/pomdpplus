@@ -110,3 +110,21 @@ K \in {10,14,18}, r = 1
 
 #### trajectories
 ![](parameter-uncertainty_files/figure-html/r5_traj_1sim.png)
+
+
+
+## Policy and Value
+
+### r
+
+![](parameter-uncertainty_files/figure-html/Pol_rr.png)
+
+![](parameter-uncertainty_files/figure-html/Val_rr.png)
+
+
+### K
+
+![](parameter-uncertainty_files/figure-html/Pol_kk.png)
+
+![](parameter-uncertainty_files/figure-html/Val_kk.png)
+
