@@ -97,4 +97,4 @@ K \in {10,14,18}, r = 1
 ![](parameter-uncertainty_files/figure-html/r3_b_100.png)
 
 #### trajectories
-![](parameter-uncertainty_files/figure-html/r3_traj.png)
+![](parameter-uncertainty_files/figure-html/r3_traj_.png)
