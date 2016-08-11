@@ -88,7 +88,7 @@ K \in {10,14,18}, r = 1
 ![](parameter-uncertainty_files/figure-html/r4_traj.png)
 
 
-### Model with K = 10, r = 0.6
+### Model with K = 18, r = 0.6
 
 #### Belief time 1 to 10
 ![](parameter-uncertainty_files/figure-html/r3_b_10.png)
@@ -98,3 +98,15 @@ K \in {10,14,18}, r = 1
 
 #### trajectories
 ![](parameter-uncertainty_files/figure-html/r3_traj_.png)
+
+
+### Model with K = 18, r = 1 (only one replicate)
+
+#### Belief time 1 to 10
+![](parameter-uncertainty_files/figure-html/r5_b_10_1sim.png)
+
+#### Belief time 1 to 100 by 25
+![](parameter-uncertainty_files/figure-html/r5_b_100_1sim.png)
+
+#### trajectories
+![](parameter-uncertainty_files/figure-html/r5_traj_1sim.png)
