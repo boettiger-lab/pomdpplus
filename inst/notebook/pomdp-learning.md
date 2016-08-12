@@ -79,11 +79,11 @@ alphas <- sarsop_plus(models, discount, precision = .1)
 ```
 
 ```
-## load time: 0.04 sec, init time: 0.15 sec, run time: 0.52 sec, final precision: 0.0958766 end_condition:   target precision reached
+## load time: 0.03 sec, init time: 0.14 sec, run time: 0.49 sec, final precision: 0.0958766 end_condition:   target precision reached
 ```
 
 ```
-## load time: 0.04 sec, init time: 0.15 sec, run time: 23.55 sec, final precision: 0.0999691 end_condition:   target precision reached
+## load time: 0.04 sec, init time: 0.15 sec, run time: 33.4 sec, final precision: 0.0999562 end_condition:   target precision reached
 ```
 
 
@@ -128,9 +128,9 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 
 
 ```r
-set.seed(1234)
+set.seed(123)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 2, a0 = 1, Tmax = 100, 
+                x0 = 3, a0 = 1, Tmax = 100, 
                 true_model = models[[2]], 
                 alphas = alphas)
 ```

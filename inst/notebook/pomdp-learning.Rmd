@@ -99,9 +99,9 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 ```
 
 ```{r}
-set.seed(1234)
+set.seed(123)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 2, a0 = 1, Tmax = 100, 
+                x0 = 3, a0 = 1, Tmax = 100, 
                 true_model = models[[2]], 
                 alphas = alphas)
 
