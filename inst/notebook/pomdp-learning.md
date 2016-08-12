@@ -3,24 +3,10 @@
 
 
 ```r
-library("MDPtoolbox")
-```
-
-```
-## Loading required package: Matrix
-```
-
-```
-## Loading required package: linprog
-```
-
-```
-## Loading required package: lpSolve
-```
-
-```r
 library("appl")
+library("pomdpplus")
 library("ggplot2")
+library("tidyr")
 library("dplyr")
 ```
 
@@ -46,10 +32,6 @@ knitr::opts_chunk$set(cache = TRUE)
 ```
 
 
-```r
-source("pomdp_learning.R")
-```
-
 
 ## Problem definition
 
@@ -60,127 +42,132 @@ actions <- states
 obs <- states
 
 sigma_g <- sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
-sigma_m <- sigma_g
+sigma_m <- sigma_g 
 
 reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
 
-
-Ks <-  seq(5, 20, length.out = 10)
-K_models <- lapply(Ks, function(K) 
-  function(x, h){
-     r <- 1
-     s <- pmax(x - h, 0)
-     s * exp(r * (1 - s / K) )
-  })
-
-models <- lapply(K_models, function(model) 
-    appl::fisheries_matrices(states = states, actions = actions, 
-                             observed_states = states, reward_fn = reward_fn,
-                             f = model, sigma_g = sigma_g, sigma_m = sigma_m))
+K1 <- function(x, h, r = 0.5, K = 10){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
 
 
-model_prior = rep(1, length(models)) / length(models)
+K2 <- function(x, h, r = 0.5, K = 15){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+
+Ks <- list(K1, K2)
 ```
 
 
 
 ```r
-m1 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[2]], sigma_g, sigma_m)
-m2 <- fisheries_matrices(states, actions, obs, reward_fn, K_models[[9]], sigma_g, sigma_m)
+models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 ```
-
-
-## POMDP solution, model 1
-
-
-```r
-soln_1 <- pomdp_solve(m1$transition, m1$observation, m1$reward, discount, precision = 1)
-```
-
-```
-## load time: 0.06 sec, init time: 0.09 sec, run time: 0.12 sec, final precision: 0.949057 end_condition:   target precision reached
-```
-
-```r
-soln_2 <- pomdp_solve(m2$transition, m2$observation, m2$reward, discount, precision = 1)
-```
-
-```
-## load time: 0.07 sec, init time: 0.2 sec, run time: 2.64 sec, final precision: 0.988588 end_condition:   target precision reached
-```
-
 
 
 ## Planning solution
 
-
-```r
-soln <- pomdp_planning(models, discount, model_prior, verbose = TRUE, mc.cores = 1L, precision = 1)
-```
-
-```
-## load time: 0.06 sec, init time: 0.07 sec, run time: 0.08 sec, final precision: 0.877313 end_condition:   target precision reached
-```
-
-```
-## load time: 0.07 sec, init time: 0.08 sec, run time: 0.12 sec, final precision: 0.949057 end_condition:   target precision reached
-```
-
-```
-## load time: 0.06 sec, init time: 0.08 sec, run time: 0.15 sec, final precision: 0.919978 end_condition:   target precision reached
-```
-
-```
-## load time: 0.06 sec, init time: 0.11 sec, run time: 0.21 sec, final precision: 0.954564 end_condition:   target precision reached
-```
-
-```
-## load time: 0.07 sec, init time: 0.13 sec, run time: 0.31 sec, final precision: 0.985769 end_condition:   target precision reached
-```
-
-```
-## load time: 0.06 sec, init time: 0.12 sec, run time: 0.52 sec, final precision: 0.973586 end_condition:   target precision reached
-```
-
-```
-## load time: 0.07 sec, init time: 0.13 sec, run time: 0.92 sec, final precision: 0.942936 end_condition:   target precision reached
-```
-
-```
-## load time: 0.06 sec, init time: 0.14 sec, run time: 1.43 sec, final precision: 0.989347 end_condition:   target precision reached
-```
-
-```
-## load time: 0.07 sec, init time: 0.15 sec, run time: 2.47 sec, final precision: 0.988588 end_condition:   target precision reached
-```
-
-```
-## load time: 0.07 sec, init time: 0.15 sec, run time: 1.65 sec, final precision: 0.983279 end_condition:   target precision reached
-```
-
+Compute Q matrices using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
 
 
 ```r
-df <- 
-  rbind(data.frame(model = "m1", soln_1),
-      data.frame(model = "m2", soln_2),
-      data.frame(model = "unif", soln))
+alphas <- sarsop_plus(models, discount, precision = .1)
+```
 
-ggplot(df, aes(states[state], states[state] - actions[policy], col = model, pch = model)) + 
+```
+## load time: 0.04 sec, init time: 0.15 sec, run time: 0.52 sec, final precision: 0.0958766 end_condition:   target precision reached
+```
+
+```
+## load time: 0.04 sec, init time: 0.15 sec, run time: 23.55 sec, final precision: 0.0999691 end_condition:   target precision reached
+```
+
+
+We can compare results for a different priors over states.  For simplicity of interpretation, we assume the model is known to be model 2 (model prior `(0,1)`)
+As expected, the policy is much more conservative when prior belief is lower!  
+
+
+```r
+low <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,4,1])
+ave <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,10,1])
+unif <- compute_plus_policy(alphas, models, c(0, 1))
+high <- compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,15,1])
+df <- dplyr::bind_rows(low, ave, unif, high, .id = "prior")
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
-  geom_line() + 
-  ylim(0,15)
+  geom_line()
 ```
 
-```
-## Warning: Removed 5 rows containing missing values (geom_point).
+![](pomdp-learning_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+
+Use alphas to compute policy given model priors, for comparison:
+
+
+```r
+compare_policies <- function(alphas, models){
+  low <-  compute_plus_policy(alphas, models, c(1, 0))
+  unif <- compute_plus_policy(alphas, models, c(1/2, 1/2))
+  high <- compute_plus_policy(alphas, models, c(0, 1))
+  dplyr::bind_rows(low, unif, high, .id = "prior")
+}
+
+
+df <- compare_policies(alphas, models)
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
 ```
 
-```
-## Warning: Removed 5 rows containing missing values (geom_path).
+![](pomdp-learning_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+
+```r
+set.seed(1234)
+out <- sim_plus(models = models, discount = discount,
+                x0 = 2, a0 = 1, Tmax = 100, 
+                true_model = models[[2]], 
+                alphas = alphas)
 ```
 
-![](pomdp-learning_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+```r
+out$df %>% 
+  dplyr::select(-value) %>% 
+  tidyr::gather(variable, stock, -time) %>% 
+  ggplot(aes(time, stock, color = variable)) + geom_line()
+```
+
+![](pomdp-learning_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+Belief is never stationary (examining belief distributions after 75 iterations):
+
+
+```r
+Tmax <-length(out$state_posterior[,1])
+out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
+  dplyr::mutate(state = as.numeric(state)) %>% 
+  dplyr::filter(time > 75) %>% 
+  ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
+```
+
+![](pomdp-learning_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+Whereas model posterior converges more quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
+
+
+```r
+out$model_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(model, probability, -time, factor_key =TRUE) %>% 
+  dplyr::filter(time < 50) %>% 
+  ggplot(aes(model, probability, group = time, alpha = time)) + geom_point()
+```
+
+![](pomdp-learning_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 

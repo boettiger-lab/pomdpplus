@@ -8,17 +8,14 @@ output:
 
 
 ```{r}
-library("MDPtoolbox")
 library("appl")
+library("pomdpplus")
 library("ggplot2")
 library("tidyr")
 library("dplyr")
 knitr::opts_chunk$set(cache = TRUE)
 ```
 
-```{r}
-source("pomdp_learning.R")
-```
 
 
 ## Problem definition
@@ -102,11 +99,10 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 ```
 
 ```{r}
-set.seed(123)
+set.seed(1234)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 100, 
-                true_transition = models[[2]]$transition, 
-                true_observation = models[[2]]$observation, 
+                x0 = 2, a0 = 1, Tmax = 100, 
+                true_model = models[[2]], 
                 alphas = alphas)
 
 
@@ -115,8 +111,8 @@ out <- sim_plus(models = models, discount = discount,
 ```{r}
 out$df %>% 
   dplyr::select(-value) %>% 
-  tidyr::gather(variable, value, -time) %>% 
-  ggplot(aes(time, value, color = variable)) + geom_line()
+  tidyr::gather(variable, stock, -time) %>% 
+  ggplot(aes(time, stock, color = variable)) + geom_line()
 ```
 
 Belief is never stationary (examining belief distributions after 75 iterations):
@@ -130,12 +126,12 @@ out$state_posterior %>% data.frame(time = 1:Tmax) %>%
   ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
 ```
 
-Whereas model posterior converges quite quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
+Whereas model posterior converges more quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
 
 ```{r}
 out$model_posterior %>% data.frame(time = 1:Tmax) %>% 
   tidyr::gather(model, probability, -time, factor_key =TRUE) %>% 
-  dplyr::filter(time < 15) %>% 
+  dplyr::filter(time < 50) %>% 
   ggplot(aes(model, probability, group = time, alpha = time)) + geom_point()
 ```
 
