@@ -64,11 +64,11 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
     if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,], verbose, mc.cores, ...)
 
     ## Get the policy corresponding to each possible observation, given the current beliefs
-    out <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,], action[t-1])
+    policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,], action[t-1])
 
     ## Update system using random samples from the observation & transition distributions:
     obs[t] <- sample(1:n_obs, 1, prob = true_model$observation[state[t], , action[t-1]])
-    action[t] <- out$policy[obs[t]]
+    action[t] <- policy$policy[obs[t]]
     value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
     ## Bayesian update of beliefs over models and states
