@@ -21,8 +21,14 @@
 #' (3) \code{state_posterior}, a data.frame of Tmax rows by n_states columns giving the evolution of the belief over states
 #' @export
 #'
-#' @importFrom appl sarsop
-#' @examples
+#' @examples \dontrun{
+#' source(system.file("examples/K_models.R", package="pomdpplus"))
+#' alphas <- sarsop_plus(models, discount, precision = 1)
+#' out <- sim_plus(models = models, discount = discount,
+#'                 x0 = 5, a0 = 1, Tmax = 10,
+#'                 true_model = models[[2]], alphas = alphas)
+#' }
+#'
 sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
                      x0, a0 = 1, Tmax, true_model,
                      alphas = NULL, verbose = TRUE, mc.cores = 1L, ...){
@@ -49,8 +55,9 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   if(is.null(alphas)){
     if(verbose) message("alphas not provided, recomputing them from SARSOP algorithm at each time step. This can be very slow!")
     update_alphas <- TRUE
+  } else {
+    update_alphas <- FALSE
   }
-
   ## Forward simulation, updating belief
   for(t in 2:Tmax){
     ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
@@ -62,7 +69,7 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
     ## Update system using random samples from the observation & transition distributions:
     obs[t] <- sample(1:n_obs, 1, prob = true_model$observation[state[t], , action[t-1]])
     action[t] <- out$policy[obs[t]]
-    value[t] <- true_model$utility[state[t], action[t]] * discount^(t-1)
+    value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
     ## Bayesian update of beliefs over models and states
     model_posterior[t+1,] <- update_model_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])

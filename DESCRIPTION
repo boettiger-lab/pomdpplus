@@ -1,7 +1,7 @@
 Package: pomdpplus
 Type: Package
 Title: Planning and Learning in Uncertain Systems
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(person("Carl", "Boettiger", email = "cboettig@gmail.com", role = c("aut", "cre")),
              person("Milad", "Memarzadeh", role = "aut"))
 Description: Utilities for planning and learning in uncertain systems by
@@ -17,5 +17,5 @@ Imports:
     stats
 RoxygenNote: 5.0.1
 Remotes:
-  cboettig/appl
+  cboettig/appl@cboettig
 

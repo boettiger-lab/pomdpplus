@@ -2,10 +2,15 @@
 #'
 #' @inheritParams sim_plus
 #'
-#' @return
+#' @importFrom appl sarsop
+#' @return A list of alpha vector matrices
 #' @export
 #'
-#' @examples
+#' @examples \dontrun{
+#' #' source(system.file("examples/K_models.R", package="pomdpplus"))
+#' alphas <- sarsop_plus(models, discount, precision = 1)
+#' unif <- compute_plus_policy(alphas, models, c(0.5, 0.5))
+#' }
 sarsop_plus <- function(models, discount, state_prior = NULL,
                         verbose = TRUE, mc.cores = 1L, ...){
 

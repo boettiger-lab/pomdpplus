@@ -3,10 +3,15 @@
 #'
 #' @inheritParams sim_plus
 #'
-#' @return
+#' @return a data frame containing the policy and value associated with each possible observation
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' source(system.file("examples/K_models.R", package="pomdpplus"))
+#' alphas <- sarsop_plus(models, discount, precision = 1)
+#' unif <- compute_plus_policy(alphas, models)
+#' }
 compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior = NULL, a0 = 1){
 
   n_states <- dim(alphas[[1]])[[1]]
@@ -33,5 +38,5 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
 
   value <- apply(EV, 1, max)
   policy <- apply(EV, 1, function(x) which.max(x))
-  data.frame(policy, value, state = 1:n_states)
+  data.frame(policy, value, state = 1:n_obs)
 }
