@@ -128,3 +128,13 @@ K \in {10,14,18}, r = 1
 
 ![](parameter-uncertainty_files/figure-html/Val_kk.png)
 
+
+
+## Policy and Value for different prior beliefs
+
+r = 1; K = 18
+
+![](parameter-uncertainty_files/figure-html/Pol_r1_k18.png)
+
+![](parameter-uncertainty_files/figure-html/Val_r1_k18.png)
+
