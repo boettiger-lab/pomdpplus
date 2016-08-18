@@ -28,7 +28,7 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
     ## belief[k,i] is belief system is in state k given observed state i
     belief <- vapply(1:n_obs,
                      function(i){
-                       b <- state_prior %*% t(m$transition[, , a0]) * m$observation[, i, a0]
+                       b <- state_prior %*% m$transition[, , a0] * m$observation[, i, a0]
                        if(sum(b) == 0) numeric(n_states) ## observed state i is impossible
                        else b / sum(b)
                      },

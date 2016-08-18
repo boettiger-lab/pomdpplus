@@ -20,33 +20,34 @@ knitr::opts_chunk$set(cache = TRUE)
 
 ## Problem definition
 
+
 ```{r}
-states <- 0:20
+states <- 0:40
 actions <- states
 obs <- states
 
 sigma_g <- sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
-sigma_m <- sigma_g 
+sigma_m <- sigma_g
 
 reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
 
-K1 <- function(x, h, r = 0.5, K = 10){
+K1 <- function(x, h, r = 1, K = 35){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
 
 
-K2 <- function(x, h, r = 0.5, K = 15){
+K2 <- function(x, h, r = 1, K = 20){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
 
 Ks <- list(K1, K2)
 
-
 ```
+
 
 
 ```{r}
@@ -59,7 +60,7 @@ models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward
 Compute Q matrices using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
 
 ```{r}
-alphas <- sarsop_plus(models, discount, precision = .1)
+alphas <- sarsop_plus(models, discount, precision = 1)
 ```
 
 
@@ -67,17 +68,17 @@ We can compare results for a different priors over states.  For simplicity of in
 As expected, the policy is much more conservative when prior belief is lower!  
 
 ```{r}
-
-
 low <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,4,1])
 ave <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,10,1])
 unif <- compute_plus_policy(alphas, models, c(0, 1))
 high <- compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,15,1])
 df <- dplyr::bind_rows(low, ave, unif, high, .id = "prior")
 
+
 ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
   geom_line()
+
 ```
 
 
@@ -91,42 +92,51 @@ compare_policies <- function(alphas, models){
   dplyr::bind_rows(low, unif, high, .id = "prior")
 }
 
-
 df <- compare_policies(alphas, models)
 ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
   geom_line()
+
 ```
 
 ```{r}
 set.seed(123)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 3, a0 = 1, Tmax = 100, 
+                x0 = 20, a0 = 1, Tmax = 100, 
                 true_model = models[[2]], 
                 alphas = alphas)
 
 
-```
-
-```{r}
 out$df %>% 
   dplyr::select(-value) %>% 
   tidyr::gather(variable, stock, -time) %>% 
-  ggplot(aes(time, stock, color = variable)) + geom_line()
+  ggplot(aes(time, stock, color = variable)) + geom_line()  + geom_point()
 ```
 
-Belief is never stationary (examining belief distributions after 75 iterations):
+Evolution of the belief state:
 
 ```{r}
 Tmax <-length(out$state_posterior[,1])
 out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
   tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
   dplyr::mutate(state = as.numeric(state)) %>% 
-  dplyr::filter(time > 75) %>% 
   ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
 ```
 
-Whereas model posterior converges more quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
+Final 20 belief states continue to move around:
+
+```{r}
+Tmax <-length(out$state_posterior[,1])
+out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
+  dplyr::mutate(state = as.numeric(state)) %>% 
+  dplyr::filter(time > 80) %>% 
+  ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
+```
+
+
+
+Model posterior converges more quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
 
 ```{r}
 out$model_posterior %>% data.frame(time = 1:Tmax) %>% 
