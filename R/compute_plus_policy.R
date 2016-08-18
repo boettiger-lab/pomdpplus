@@ -33,10 +33,11 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
                        else b / sum(b)
                      },
                      numeric(n_states))
-    EV <- EV + t(belief) %*% alphas[[j]]  * model_prior[j]
+    EV <- EV + t(belief) %*% alphas[[j]]$vectors  * model_prior[j]
   }
 
   value <- apply(EV, 1, max)
-  policy <- apply(EV, 1, function(x) which.max(x))
+  policy <- apply(EV, 1, function(x) alpha$action[which.max(x)])
+
   data.frame(policy, value, state = 1:n_obs)
 }

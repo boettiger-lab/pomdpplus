@@ -45,19 +45,21 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   if(is.null(state_prior))  state_prior <- rep(1, n_states) / n_states
   if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
 
-  ## Starting values
+  ## Assign starting values
   state[2] <- x0
   action[1] <- a0  # only relevant if action influences observation process
   model_posterior[2,] <- model_prior
   state_posterior[2,] <- state_prior
 
-  ## If alphas are not provided, assume we are running pomdpsol
+  ## If alphas are not provided, assume we are running pomdpsol each time
   if(is.null(alphas)){
     if(verbose) message("alphas not provided, recomputing them from SARSOP algorithm at each time step. This can be very slow!")
     update_alphas <- TRUE
   } else {
     update_alphas <- FALSE
   }
+
+
   ## Forward simulation, updating belief
   for(t in 2:Tmax){
     ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
@@ -71,6 +73,7 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
     action[t] <- out$policy[obs[t]]
     value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
+
     ## Bayesian update of beliefs over models and states
     model_posterior[t+1,] <- update_model_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
     state_posterior[t+1,] <- update_state_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
