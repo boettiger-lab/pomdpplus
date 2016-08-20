@@ -7,7 +7,7 @@
 #' @param model_prior Prior belief assigned to each model. uniform by default.
 #' @param state_prior Prior belief that system is in state x_i before simulation starts
 #' @param obs vector of observations from given data
-#' @param vector of actions corresponding to each observation, given the data
+#' @param action vector of actions corresponding to each observation, given the data
 #' @param alphas the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.
 #' @param verbose should function provide messages?
 #' @param mc.cores number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!

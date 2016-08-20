@@ -18,6 +18,8 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 
 \item{obs}{vector of observations from given data}
 
+\item{action}{vector of actions corresponding to each observation, given the data}
+
 \item{alphas}{the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.}
 
 \item{verbose}{should function provide messages?}
@@ -25,8 +27,6 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 \item{mc.cores}{number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!}
 
 \item{...}{additiional options to appl::sarsop, if alphas are not provided}
-
-\item{vector}{of actions corresponding to each observation, given the data}
 }
 \value{
 a list with elements
