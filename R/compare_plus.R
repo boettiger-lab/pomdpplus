@@ -31,56 +31,29 @@
 compare_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
                      obs, action,
                      alphas = NULL, verbose = TRUE, mc.cores = 1L, ...){
-
-  Tmax <- length(obs) - 1
-
   ## Initialize objects
+  Tmax <- length(obs) - 1
   n_states <- dim(models[[1]][["observation"]])[1]
-  n_obs <- dim(models[[1]][["observation"]])[2]
   n_models <- length(models)
-  value <- optimal <- state <- numeric(Tmax+1)
+  optimal <- numeric(Tmax+1)
   model_posterior <- array(NA, dim = c(Tmax+1, n_models))
   state_posterior <- array(NA, dim = c(Tmax+1, n_states))
-
   ## Defaults if not provided
   if(is.null(state_prior))  state_prior <- rep(1, n_states) / n_states
   if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
-
   ## Assign starting values
   model_posterior[2,] <- model_prior
   state_posterior[2,] <- state_prior
 
-  ## If alphas are not provided, assume we are running pomdpsol each time
-  if(is.null(alphas)){
-    if(verbose) message("alphas not provided, recomputing them from SARSOP algorithm at each time step. This can be very slow!")
-    update_alphas <- TRUE
-  } else {
-    update_alphas <- FALSE
-  }
-
-
-  ## Forward simulation, updating belief
+  ## Forward iteration, updating belief
   for(t in 2:Tmax){
-    ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
-    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,], verbose, mc.cores, ...)
-
-    ## Get the policy corresponding to each possible observation, given the current beliefs
     policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,], action[t-1])
-
     optimal[t] <- policy$policy[obs[t]]
-
-    ## Update system using the given observation & given action
-    value[t] <- models[[1]]$reward[state[t], action[t]] * discount^(t-1) ## assume reward is same for all models
-
-
-    ## Bayesian update of beliefs over models and states
     model_posterior[t+1,] <- update_model_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
     state_posterior[t+1,] <- update_state_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
-
   }
-
   ## assemble data frame without dummy year for starting action
-  df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
+  df <- data.frame(time = 0:Tmax, obs, action, optimal)[2:Tmax,]
   list(df = df,
        model_posterior = as.data.frame(model_posterior[2:(Tmax+1),]),
        state_posterior = as.data.frame(state_posterior[2:(Tmax+1),]))
