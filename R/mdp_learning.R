@@ -116,9 +116,23 @@ bayes_update_model_belief <- function(model_prior, x_t, x_t1, a_t, transition){
 
 #############################################################################################################################
 
-
-## Simulate a (static) policy given the transition model
-mdp_policy_sim <- function(transition, reward, discount, policy, x0, Tmax){
+#' mdp_policy_sim
+#'
+#' Simulate a (static) policy given the transition model
+#' @inheritParams compute_mdp_policy
+#' @inheritParams mdp_learning
+#' @return a data.frame with the state, action, and value at each time t
+#' @example
+#' ## Setup
+#' source(system.file("examples/K_models.R", package="pomdpplus"))
+#' transition <- lapply(models, `[[`, "transition")
+#' reward <- models[[1]][["reward"]]
+#'
+#' ## Simulate how policy over model uncertainty performs when model 1 is true:
+#' df <- compute_mdp_policy(transition, reward, discount)
+#' out <- mdp_policy_sim(df$policy, transition[[1]], reward, discount, x0 = 10, Tmax = 20)
+#' @export
+mdp_policy_sim <- function(policy, transition, reward, discount, x0, Tmax){
   n_states <- dim(transition[[1]])[1]
   state <- action <- value <- numeric(Tmax)
   time <- 1:(Tmax-1)
@@ -135,8 +149,20 @@ mdp_policy_sim <- function(transition, reward, discount, policy, x0, Tmax){
 
 
 
-## Compute the expected net present (e.g. discounted) value of a (not-necessarily optimal) policy
-value_of_policy <- function(policy, transition, reward, discount, model_prior = rep(1, length(transition))/length(transition), Tmax){
+
+#' mdp_value_of_policy
+#'
+#' Compute the expected net present (e.g. discounted) value of a (not-necessarily optimal) policy in a perfectly observed (MDP) system
+#' @inheritParams compute_mdp_policy
+#' @return the expected net present value of the given policy, for each state
+#' @examples
+#' source(system.file("examples/K_models.R", package="pomdpplus"))
+#' transition <- lapply(models, `[[`, "transition")
+#' reward <- models[[1]][["reward"]]
+#' df <- compute_mdp_policy(transition, reward, discount)
+#' v <- value_of_policy(df$policy, transition, reward, discount)
+#' @export
+mdp_value_of_policy <- function(policy, transition, reward, discount, model_prior = rep(1, length(transition))/length(transition), max_iter = 500, epsilon = 1e-5){
   if(is.array(transition)){
     transition <- list(transition)
   }
@@ -144,9 +170,11 @@ value_of_policy <- function(policy, transition, reward, discount, model_prior = 
   n_states <- dim(transition[[1]])[1]
   n_actions <- dim(transition[[1]])[3]
   Vt <- numeric(n_states)
+  next_value <- Vt
   V_model <- array(dim=c(n_states, n_models))
-
-  for (t in (Tmax - 1):1) {
+  converged <- FALSE
+  t <- 1
+  while(t < max_iter && converged == FALSE){
     Q <- array(0, dim = c(n_states, n_actions))
     for (i in 1:n_actions) {
       for(j in 1:n_models){
@@ -157,7 +185,12 @@ value_of_policy <- function(policy, transition, reward, discount, model_prior = 
 
     for(i in 1:n_states)
       Vt[i] <- Q[i,policy[i]]
-    #Vt <- apply(Q, 1, max)
+
+    if( sum( abs(Vt - next_value) ) < epsilon ){
+      converged <- TRUE
+    }
+    next_value <- Vt
+    t <- t + 1
   }
   Vt
 }
