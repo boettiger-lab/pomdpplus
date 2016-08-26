@@ -1,6 +1,6 @@
 # parameter-uncertainty
 Carl Boettiger  
-7/25/2016  
+8/25/2016  
 
 
 
@@ -11,7 +11,9 @@ library("pomdpplus")
 library("appl")
 library("ggplot2")
 library("tidyr")
+library("purrr")
 library("dplyr")
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 Initialize a simple POMDP model for fisheries:
@@ -143,7 +145,7 @@ compare_policies <- function(transition){
 
 
 ```r
-policies <- purrr::map2_df(list(r_matrices, K_matrices, C_matrices, sigma_matrices), list("r", "K", "C", "sigma"),
+policies <- map2_df(list(r_matrices, K_matrices, C_matrices, sigma_matrices), list("r", "K", "C", "sigma"),
                function(matrices,label) data.frame(model = label, compare_policies(matrices))
 )
 ```
@@ -179,20 +181,16 @@ benefit of illustrating the distribution of outcomes.  We will revisit that appr
 
 
 ```r
-value_of_policy <- pomdpplus:::value_of_policy
 value_of_information <- function(x){
   policies <- x[[1]]
   transition <- x[[2]]
   model <- x[[3]]
-  low_low =   value_of_policy(policies$low, transition[[2]],   utility, discount, Tmax = 200)
-  high_high = value_of_policy(policies$high, transition[[11]], utility, discount, Tmax = 200)
-
-  unif_low = value_of_policy(policies$unif, transition[[2]], utility, discount, Tmax = 200) / low_low
-  high_low = value_of_policy(policies$high, transition[[2]], utility, discount, Tmax = 200)  / low_low
-  
-  unif_high = value_of_policy(policies$unif, transition[[11]], utility, discount, Tmax = 200) / high_high
-  low_high =  value_of_policy(policies$low, transition[[11]],  utility, discount, Tmax = 200)  / high_high
-  
+  low_low =   mdp_value_of_policy(policies$low, transition[[2]],   utility, discount)
+  high_high = mdp_value_of_policy(policies$high, transition[[11]], utility, discount)
+  unif_low = mdp_value_of_policy(policies$unif, transition[[2]], utility, discount) / low_low
+  high_low = mdp_value_of_policy(policies$high, transition[[2]], utility, discount)  / low_low
+  unif_high = mdp_value_of_policy(policies$unif, transition[[11]], utility, discount) / high_high
+  low_high =  mdp_value_of_policy(policies$low, transition[[11]],  utility, discount)  / high_high
   data.frame(state = policies$states, unif_low = unif_low, unif_high = unif_high, low_high = low_high, high_low = high_low, model = model)
 }
 ```
@@ -203,7 +201,7 @@ relative_value <- list(list(filter(policies, model=="r"), r_matrices, "r"),
            list(filter(policies, model=="K"), K_matrices, "K"), 
            list(filter(policies, model=="C"), C_matrices, "C"), 
            list(filter(policies, model=="sigma"), sigma_matrices, "sigma")) %>%
-  purrr::map_df(value_of_information)
+  map_df(value_of_information)
 ```
   
 
@@ -234,21 +232,112 @@ Under each of the above scenarios in the Ricker model, the value is realtively i
 
 
 
-## Comparing to simulations
+## Planning only
 
-
-
-
-## Comparing to learning
 
 
 ```r
-Tmax <- 100
-out <- mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[2]])
+Tmax <- 50
+true_i <- 5
+unif <- compute_mdp_policy(C_matrices, utility, discount)
+df <- mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax)
+```
 
+
+```r
+df %>% ggplot(aes(time, state)) + geom_line() + geom_line(aes(y = action), col = "red")
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+### Replicates:
+
+
+```r
+sims <- 
+map_df(1:100, 
+       function(i) mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax),
+  .id = "rep")
+```
+
+
+
+```r
+sims %>% 
+  ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.5)
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+
+How many have collapsed? 
+
+
+```r
+sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
+```
+
+```
+##   sum(state == 1)
+## 1              27
+```
+
+
+## Learning
+
+
+```r
+Tmax <- 50
+true_i <- 5
+out <- mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])
+```
+
+Simulation trajectories:
+
+
+```r
+out$df %>% select(-value) %>% gather(series, stock, -time) %>%
+  ggplot(aes(time, stock, color = series)) + geom_line()
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+Final belief over models
+
+
+```r
 barplot(out$posterior[Tmax,])
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 
+Replicate simulations:
+
+
+```r
+sims <- 
+map_df(1:100, 
+       function(i) mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])$df, 
+  .id = "rep")
+```
+
+
+
+```r
+sims %>% 
+  ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.5)
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+
+How many have collapsed? (Note that `mdp_learning` recomputes policy based on finite future time window)
+
+
+```r
+sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
+```
+
+```
+##   sum(state == 1)
+## 1              28
+```

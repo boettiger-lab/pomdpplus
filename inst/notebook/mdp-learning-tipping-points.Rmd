@@ -18,7 +18,7 @@ library("ggplot2")
 library("tidyr")
 library("purrr")
 library("dplyr")
-
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 Initialize a simple POMDP model for fisheries:
@@ -304,8 +304,8 @@ sims %>%
 
 ```
 
-How many have collapsed? 
+How many have collapsed? (Note that `mdp_learning` recomputes policy based on finite future time window)
 
 ```{r}
-sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
+sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 ```
