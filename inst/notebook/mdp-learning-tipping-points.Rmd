@@ -1,7 +1,7 @@
 ---
 title: "parameter-uncertainty"
 author: "Carl Boettiger"
-date: "7/25/2016"
+date: "8/25/2016"
 output: 
   html_document:
     keep_md: true
@@ -180,17 +180,16 @@ benefit of illustrating the distribution of outcomes.  We will revisit that appr
 
 
 ```{r}
-value_of_policy <- pomdpplus:::value_of_policy
 value_of_information <- function(x){
   policies <- x[[1]]
   transition <- x[[2]]
   model <- x[[3]]
-  low_low =   value_of_policy(policies$low, transition[[2]],   utility, discount)
-  high_high = value_of_policy(policies$high, transition[[11]], utility, discount)
-  unif_low = value_of_policy(policies$unif, transition[[2]], utility, discount) / low_low
-  high_low = value_of_policy(policies$high, transition[[2]], utility, discount)  / low_low
-  unif_high = value_of_policy(policies$unif, transition[[11]], utility, discount) / high_high
-  low_high =  value_of_policy(policies$low, transition[[11]],  utility, discount)  / high_high
+  low_low =   mdp_value_of_policy(policies$low, transition[[2]],   utility, discount)
+  high_high = mdp_value_of_policy(policies$high, transition[[11]], utility, discount)
+  unif_low = mdp_value_of_policy(policies$unif, transition[[2]], utility, discount) / low_low
+  high_low = mdp_value_of_policy(policies$high, transition[[2]], utility, discount)  / low_low
+  unif_high = mdp_value_of_policy(policies$unif, transition[[11]], utility, discount) / high_high
+  low_high =  mdp_value_of_policy(policies$low, transition[[11]],  utility, discount)  / high_high
   data.frame(state = policies$states, unif_low = unif_low, unif_high = unif_high, low_high = low_high, high_low = high_low, model = model)
 }
 
@@ -230,17 +229,50 @@ Under each of the above scenarios in the Ricker model, the value is realtively i
 ## Planning only
 
 
+```{r}
+Tmax <- 50
+true_i <- 5
+unif <- compute_mdp_policy(C_matrices, utility, discount)
+df <- mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax)
+```
+
+```{r}
+df %>% ggplot(aes(time, state)) + geom_line() + geom_line(aes(y = action), col = "red")
+```
+
+### Replicates:
+
+```{r}
+sims <- 
+map_df(1:100, 
+       function(i) mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax),
+  .id = "rep")
+
+```
+
+
+```{r}
+sims %>% 
+  ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.5)
+
+```
+
+How many have collapsed? 
+
+```{r}
+sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
+```
 
 
 ## Learning
 
 ```{r}
-Tmax <- 100
+Tmax <- 50
 true_i <- 5
 out <- mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])
 ```
 
-Simulation:
+Simulation trajectories:
 
 ```{r}
 out$df %>% select(-value) %>% gather(series, stock, -time) %>%
@@ -259,15 +291,21 @@ Replicate simulations:
 
 ```{r}
 sims <- 
-map_df(1:20, 
+map_df(1:100, 
        function(i) mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])$df, 
-  .id = rep)
+  .id = "rep")
 
 ```
 
 
 ```{r}
-sim$df %>% select(-value) %>% gather(series, stock, -time, -rep) %>%
-  ggplot(aes(time, stock, color = series, group = rep)) + geom_line(alpha = 0.5)
+sims %>% 
+  ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.5)
 
+```
+
+How many have collapsed? 
+
+```{r}
+sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 ```
