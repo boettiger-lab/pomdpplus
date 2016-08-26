@@ -122,7 +122,7 @@ bayes_update_model_belief <- function(model_prior, x_t, x_t1, a_t, transition){
 #' @inheritParams compute_mdp_policy
 #' @inheritParams mdp_learning
 #' @return a data.frame with the state, action, and value at each time t
-#' @example
+#' @examples
 #' ## Setup
 #' source(system.file("examples/K_models.R", package="pomdpplus"))
 #' transition <- lapply(models, `[[`, "transition")
