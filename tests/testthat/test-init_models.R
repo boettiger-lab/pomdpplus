@@ -54,3 +54,7 @@ testthat::test_that("init models generate the set of alpha vectors and actions",
 
 
 })
+
+unlink("pomdp.policy")
+unlink("input.pomdpx")
+

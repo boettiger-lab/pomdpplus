@@ -58,6 +58,8 @@ compute_mdp_policy <- function(transition, reward, discount,
     next_value <- value
     next_policy <- policy
     t <- t+1
+    if(t == max_iter)
+      message("Note: max number of iterations reached")
   }
   data.frame(state = 1:n_states, policy, value)
 }
@@ -87,7 +89,9 @@ compute_mdp_policy <- function(transition, reward, discount,
 #' out$posterior[20,]
 mdp_learning <- function(transition, reward, discount,
                          model_prior = rep(1, length(transition)) / length(transition),
-                         x0, Tmax = 20, true_transition){
+                         x0, Tmax = 20, true_transition, max_iter = 500, epsilon = 1e-5,
+                         type = c("policy iteration", "value iteration", "finite time")){
+  type <- match.arg(type)
   n_states <- dim(transition[[1]])[1]
   state <- numeric(Tmax)
   action <- numeric(Tmax)
@@ -97,7 +101,8 @@ mdp_learning <- function(transition, reward, discount,
   state[1] <- x0
 
   for(t in 1:(Tmax-1)){
-    out <- compute_mdp_policy(transition, reward, discount, q[t,], max_iter = Tmax - t+1, type = "finite time")
+    if(type == "finite time") max_iter <- Tmax - t+1
+    out <- compute_mdp_policy(transition, reward, discount, q[t,], max_iter = max_iter, epsilon = epsilon, type = type)
     action[t] <- out$policy[state[t]]
     value[t] <- reward[state[t], action[t]] * discount^(t-1)
     prob <- true_transition[state[t], , action[t]]
@@ -195,6 +200,8 @@ mdp_value_of_policy <- function(policy, transition, reward, discount, model_prio
     }
     next_value <- Vt
     t <- t + 1
+    if(t == max_iter)
+      message("Note: max number of iterations reached")
   }
   Vt
 }
