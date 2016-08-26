@@ -8,6 +8,8 @@ mdp_value_of_policy(policy, transition, reward, discount, model_prior = rep(1,
   length(transition))/length(transition), max_iter = 500, epsilon = 1e-05)
 }
 \arguments{
+\item{policy}{the policy for which we want to determine the expected value}
+
 \item{transition}{list of transition matrices, one per model}
 
 \item{reward}{the utility matrix U(x,a) of being at state x and taking action a}
@@ -26,11 +28,14 @@ the expected net present value of the given policy, for each state
 \description{
 Compute the expected net present (e.g. discounted) value of a (not-necessarily optimal) policy in a perfectly observed (MDP) system
 }
+\details{
+transition can be a single transition matrix or a list of transition matrices
+}
 \examples{
 source(system.file("examples/K_models.R", package="pomdpplus"))
 transition <- lapply(models, `[[`, "transition")
 reward <- models[[1]][["reward"]]
 df <- compute_mdp_policy(transition, reward, discount)
-v <- value_of_policy(df$policy, transition, reward, discount)
+v <- mdp_value_of_policy(df$policy, transition, reward, discount)
 }
 

@@ -7,7 +7,9 @@
 mdp_policy_sim(policy, transition, reward, discount, x0, Tmax)
 }
 \arguments{
-\item{transition}{list of transition matrices, one per model}
+\item{policy}{the policy to apply in the simulation}
+
+\item{transition}{a single transition matrix that wil lbe used for the simulation}
 
 \item{reward}{the utility matrix U(x,a) of being at state x and taking action a}
 
