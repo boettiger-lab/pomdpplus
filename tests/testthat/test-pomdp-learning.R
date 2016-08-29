@@ -25,6 +25,7 @@ out <- sim_plus(models = models, discount = discount,
                 true_model = models[[2]],
                 alphas = alphas)
 
-
-
+testthat::testthat("plus prefers the true model after learning period", {
+  testthat::expect_gt(out$model_posterior[10,2] > out$model_posterior[10,1])
+})
 
