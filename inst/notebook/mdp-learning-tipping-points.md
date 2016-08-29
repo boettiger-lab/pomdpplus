@@ -287,7 +287,7 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 
 ```r
 Tmax <- 50
-true_i <- 5
+true_i <- 3
 out <- mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])
 ```
 
@@ -341,3 +341,102 @@ sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 ##   sum(state == 1)
 ## 1              28
 ```
+
+
+### Learning in other parameters
+
+We have a much easier time learning the right value of the other parameters.
+
+#### Learning over K
+
+
+```r
+Tmax <- 50
+true_i <- 3
+out <- mdp_learning(K_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = K_matrices[[true_i]])
+```
+
+Simulation trajectories:
+
+
+```r
+out$df %>% select(-value) %>% gather(series, stock, -time) %>%
+  ggplot(aes(time, stock, color = series)) + geom_line()
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
+Final belief over models
+
+
+```r
+barplot(out$posterior[Tmax,])
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+
+
+
+#### Learning over r
+
+Learning the r parameter is also quite efficient:
+
+
+```r
+Tmax <- 50
+true_i <- 3
+out <- mdp_learning(r_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = r_matrices[[true_i]])
+```
+
+Simulation trajectories:
+
+
+```r
+out$df %>% select(-value) %>% gather(series, stock, -time) %>%
+  ggplot(aes(time, stock, color = series)) + geom_line()
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+
+Final belief over models
+
+
+```r
+barplot(out$posterior[Tmax,])
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
+
+
+
+#### Learning over sigma
+
+
+
+```r
+Tmax <- 50
+true_i <- 3
+out <- mdp_learning(sigma_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = sigma_matrices[[true_i]])
+```
+
+Simulation trajectories:
+
+
+```r
+out$df %>% select(-value) %>% gather(series, stock, -time) %>%
+  ggplot(aes(time, stock, color = series)) + geom_line()
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
+
+Final belief over models
+
+
+```r
+barplot(out$posterior[Tmax,])
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
+
+
+
