@@ -1,0 +1,98 @@
+---
+output:
+  html_document: 
+    keep_md: yes
+    variant: markdown_github
+---  
+
+
+
+```{r}
+library("appl")
+library("pomdpplus")
+library("ggplot2")
+library("tidyr")
+library("dplyr")
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r}
+log_dir <- "../../../pomdp-solutions-library/library"
+meta <- appl::meta_from_log(data.frame(model ="ricker", r = .6, n_states = 51), log_dir)[2:5,]
+meta
+```
+
+
+## Import parameters from log
+
+
+```{r}
+setup <- meta[1,]
+
+states <- 0:(setup$n_states - 1)
+actions <- states
+obs <- states
+
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
+```
+
+
+Policy based on a uniform prior belief over the models:  
+
+```{r}
+# K = 10:40
+A <- compute_plus_policy(alphas, models, model_prior  = c(1,0,0,0))
+B <- compute_plus_policy(alphas, models, model_prior  = c(0,1,0,0))
+C <- compute_plus_policy(alphas, models, model_prior = c(0,0,1,0))
+D <- compute_plus_policy(alphas, models, model_prior = c(0,0,0,1))
+unif <- compute_plus_policy(alphas, models)
+
+df <- dplyr::bind_rows(A, B, C, D, unif, .id = "prior")
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
+
+
+```
+
+
+```{r}
+set.seed(123)
+out <- sim_plus(models = models, discount = discount,
+                x0 = 20, a0 = 1, Tmax = 100, 
+                true_model = models[[2]], 
+                alphas = alphas)
+
+
+out$df %>% 
+  dplyr::select(-value) %>% 
+  tidyr::gather(variable, stock, -time) %>% 
+  ggplot(aes(time, stock, color = variable)) + geom_line()  + geom_point()
+```
+
+Evolution of the belief state:
+
+```{r}
+Tmax <-length(out$state_posterior[,1])
+out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
+  dplyr::mutate(state = as.numeric(state)) %>% 
+  ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
+```
+
+
+
+```{r}
+out$model_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(model, probability, -time, factor_key =TRUE) %>% 
+  ggplot(aes(model, probability, group = time, alpha = time)) + geom_point()
+```
+
