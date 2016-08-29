@@ -42,10 +42,15 @@ aa = out[[2]]
 
 
 testthat::test_that("run_sim_seq generates the outputs of the forward simulations", {
-  
+
   x <- run_sim_seq(T,O,R,GAMMA,av,aa,Num_sim,seq,Num_model,initial,n_sample, P)
 
   testthat::expect_is(x, "list")
-  
-  
+
+
 })
+
+unlink("pomdp.policy")
+unlink("input.pomdpx")
+
+

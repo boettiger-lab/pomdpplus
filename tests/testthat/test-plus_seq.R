@@ -41,11 +41,16 @@ input = vector("list", length = 4)
 input[[1]] = T; input[[2]] = O; input[[3]] = R; input[[4]] = GAMMA
 
 testthat::test_that("plus_seq generates the results of the forward simulation", {
-  
+
   #  source(system.file("examples/example_plus.R", package = "pomdpplus"))
   x <- plus_seq(input,Num_sim,seq,n_sample,initial,P)
-  
+
   testthat::expect_is(x, "list")
-  
-  
+
+
 })
+
+
+unlink("pomdp.policy")
+unlink("input.pomdpx")
+

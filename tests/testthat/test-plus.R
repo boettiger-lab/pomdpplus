@@ -48,3 +48,8 @@ testthat::test_that("plus generates the results of the forward simulation", {
 
 
 })
+
+
+unlink("pomdp.policy")
+unlink("input.pomdpx")
+

@@ -5,7 +5,9 @@
 \title{mdp learning}
 \usage{
 mdp_learning(transition, reward, discount, model_prior = rep(1,
-  length(transition))/length(transition), x0, Tmax = 20, true_transition)
+  length(transition))/length(transition), x0, Tmax = 20, true_transition,
+  max_iter = 500, epsilon = 1e-05, type = c("policy iteration",
+  "value iteration", "finite time"))
 }
 \arguments{
 \item{transition}{list of transition matrices, one per model}
@@ -21,6 +23,12 @@ mdp_learning(transition, reward, discount, model_prior = rep(1,
 \item{Tmax}{length of time to simulate}
 
 \item{true_transition}{actual transition used to drive simulation}
+
+\item{max_iter}{maximum number of iterations to perform}
+
+\item{epsilon}{convergence tolerance}
+
+\item{type}{consider converged when policy converges or when value converges?}
 }
 \value{
 a list, containing: data frame "df" with the state, action and a value at each time step in the simulation,
