@@ -23,12 +23,12 @@ K2 <- function(x, h){
 models <- lapply(list(K1,K2), function(f) appl::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 
 
-alphas <- sarsop_plus(models, discount, precision = 1)
+alphas <- sarsop_plus(models, discount, precision = .1)
 unif <- compute_plus_policy(alphas, models)
 testthat::expect_is(unif, "data.frame")
 
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 10,
+                x0 = 5, a0 = 1, Tmax = 20,
                 true_model = models[[2]],
                 alphas = alphas)
 
@@ -49,10 +49,11 @@ alphas <- sarsop_plus(models, discount, precision = 1,
 
 meta <- meta_from_log(parameters = data.frame(model = "ricker", r = r), log_dir = log)
 
+## Make sure we have only two matches
+testthat::expect_length(meta[,1], 2)
 
 log_alphas <- alphas_from_log(meta, log_dir = log)
 log_models <- models_from_log(meta)
-
 
 testthat::expect_identical(alphas, log_alphas)
 testthat::expect_identical(models, log_models)
