@@ -40,7 +40,7 @@ the Allen model over a range of Allee threshold `C` values:
 rs <-  seq(0, 2, length.out = 11)
 r_models <- lapply(rs, function(r) 
   function(x, h){
-    K <- 45
+    K <- 40
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) )
   })
@@ -59,7 +59,7 @@ Cs <- seq(0,25, length.out = 11)
 C_models <- lapply(Cs, function(C) 
   function(x, h){
      r <- 1
-     K <- 45
+     K <- 40
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) * (s - C) / K )
   })
@@ -278,7 +278,7 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1              27
+## 1              23
 ```
 
 
@@ -339,7 +339,7 @@ sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1              28
+## 1              15
 ```
 
 
