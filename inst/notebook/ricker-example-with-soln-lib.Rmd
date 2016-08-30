@@ -14,11 +14,14 @@ library("dplyr")
 ```
 
 ```{r}
-log = "../library"
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
 
-who <- data.frame(model = "ricker", r = 0.6, K = 30)
+who <- data.frame(model = "ricker")
+#who <- data.frame(model = "ricker", r = 0.6, K = 30)
+#who <- data.frame(model = "ricker", r = 0.6, K = 50, n_states = 61)
 
-meta <- meta_from_log(who, log = log)
+
+meta <- meta_from_log(who, log = log_dir)
 meta
 ```
 
@@ -27,7 +30,7 @@ meta
 ```{r}
 i <- 1 # just use first match from the log
 
-alpha <- alphas_from_log(meta, log = log)[[i]]
+alpha <- alphas_from_log(meta, log = log_dir)[[i]]
 f <- f_from_log(meta)[[i]]
 m <- models_from_log(meta)[[i]]
 
