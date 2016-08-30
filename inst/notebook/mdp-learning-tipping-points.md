@@ -21,13 +21,13 @@ Initialize a simple POMDP model for fisheries:
 
 ```r
 set.seed(1234)
-states <- 0:50
+states <- 0:60
 actions <- states
 observed_states <- states
 reward_fn <-  function(x, a) pmin(x, a)
-sigma_g <- 0.28
-sigma_m <- 0.28
-discount <- 0.95
+sigma_g <- 0.1286 # approx var of unif 0.1
+sigma_m <- 0.1286
+discount <- 0.99
 Tmax <- 20
 ```
 
@@ -49,16 +49,17 @@ r_models <- lapply(rs, function(r)
 Ks <-  seq(5, 45, length.out = 11)
 K_models <- lapply(Ks, function(K) 
   function(x, h){
-     r <- 1
+     r <- 0.5
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) )
   })
 
 
-Cs <- seq(0,25, length.out = 11)
+#Cs <- seq(0,25, length.out = 11)
+Cs <- seq(0, 20, by = 5)
 C_models <- lapply(Cs, function(C) 
   function(x, h){
-     r <- 1
+     r <- 0.5
      K <- 40
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) * (s - C) / K )
@@ -108,7 +109,7 @@ from that range.
 
 Likewise, we consider $K \in [5, 45]$ compared to fixing C at a low ($K = 9$), average ($K = 25$), and high values ($K = 45$)
 
-For $C$ parameter in the Allen model, we consider $C \in [0, 25]$ compared to fixing C at a low ($C = 2.5$), average ($C = 12.5$), and high values ($C = 25$)
+For $C$ parameter in the Allen model, we consider $C \in [0, 20]$ compared to fixing C at a low ($C = 5$), average ($C = NA$), and high values ($C = NA$)
 
 
 For $\sigma$ parameter in the Ricker model, we consider $\sigma \in [0.01, 0.5]$ compared to fixing sigma at a low ($\sigma = 0.059$), average ($\sigma = 0.255$), and high values ($\sigma = 0.5$)
@@ -120,15 +121,18 @@ For $\sigma$ parameter in the Ricker model, we consider $\sigma \in [0.01, 0.5]$
 ```r
 compare_policies <- function(transition){
   
+  max <- length(transition)
+  mid <- round((length(transition)+1) / 2)
+  
   qt_unif <- rep(1, length=length(transition)) / length(transition)
   unif <- compute_mdp_policy(transition, utility, discount, qt_unif)
 
   qt_high <- numeric(length(transition))
-  qt_high[11] <- 1
+  qt_high[max] <- 1
   high <- compute_mdp_policy(transition, utility, discount, qt_high)
   
   qt_mean <- numeric(length(transition))
-  qt_mean[6] <- 1
+  qt_mean[mid] <- 1
   mean <- compute_mdp_policy(transition, utility, discount, qt_mean)
   
   
@@ -184,13 +188,17 @@ benefit of illustrating the distribution of outcomes.  We will revisit that appr
 value_of_information <- function(x){
   policies <- x[[1]]
   transition <- x[[2]]
+  
   model <- x[[3]]
+  
+  max <- length(transition)
+  
   low_low =   mdp_value_of_policy(policies$low, transition[[2]],   utility, discount)
-  high_high = mdp_value_of_policy(policies$high, transition[[11]], utility, discount)
+  high_high = mdp_value_of_policy(policies$high, transition[[max]], utility, discount)
   unif_low = mdp_value_of_policy(policies$unif, transition[[2]], utility, discount) / low_low
   high_low = mdp_value_of_policy(policies$high, transition[[2]], utility, discount)  / low_low
-  unif_high = mdp_value_of_policy(policies$unif, transition[[11]], utility, discount) / high_high
-  low_high =  mdp_value_of_policy(policies$low, transition[[11]],  utility, discount)  / high_high
+  unif_high = mdp_value_of_policy(policies$unif, transition[[max]], utility, discount) / high_high
+  low_high =  mdp_value_of_policy(policies$low, transition[[max]],  utility, discount)  / high_high
   data.frame(state = policies$states, unif_low = unif_low, unif_high = unif_high, low_high = low_high, high_low = high_low, model = model)
 }
 ```
@@ -203,6 +211,30 @@ relative_value <- list(list(filter(policies, model=="r"), r_matrices, "r"),
            list(filter(policies, model=="sigma"), sigma_matrices, "sigma")) %>%
   map_df(value_of_information)
 ```
+
+```
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+## Note: max number of iterations reached
+```
   
 
 ```r
@@ -210,7 +242,7 @@ relative_value  %>%
     gather(scenario, value, -state, -model) %>%
     ggplot(aes(state, value, col = scenario)) + 
   geom_point() + 
-  facet_wrap(~model)
+  facet_wrap(~model) + coord_cartesian(ylim = c(0,1))
 ```
 
 ```
@@ -238,7 +270,7 @@ Under each of the above scenarios in the Ricker model, the value is realtively i
 
 ```r
 Tmax <- 50
-true_i <- 5
+true_i <- 3
 unif <- compute_mdp_policy(C_matrices, utility, discount)
 df <- mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax)
 ```
@@ -278,7 +310,7 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1              23
+## 1               0
 ```
 
 
@@ -339,7 +371,7 @@ sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1              15
+## 1               3
 ```
 
 

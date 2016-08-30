@@ -40,27 +40,69 @@ knitr::opts_chunk$set(cache = TRUE)
 
 
 ```r
+#log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
+#meta <- appl::meta_from_log(data.frame(model = "allen", r = 1, K = 40, sigma_m = 0.05), log_dir) ## two sets, differ only in sigma_m
+
+## larger noise example
 log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
-meta <- appl::meta_from_log(data.frame(model = "allen", r = 1, K = 40, sigma_m = 0.05), log_dir) ## two sets, differ only in sigma_m
-meta
+meta <- appl::meta_from_log(data.frame(model = "allen", r = 0.5, K = 40), log_dir) ## two sets, differ only in sigma_m
+
+meta 
 ```
 
 ```
 ##                                      id load_time_sec init_time_sec
-## 58 69e848c9-4110-443d-8dad-f2be96b2d7e0          0.56         29.54
-## 59 fa567e2f-73d5-4fdf-ab6d-5d5a4cb7a0bf          0.53         27.38
-## 60 09e37ff6-a2b1-4083-bfd3-39e80c161fcd          0.56         26.23
-## 61 2e7512dc-d8a5-46e3-a426-869df2a1f0ae          0.55         24.73
+## 21 d55a94f7-976e-449b-a709-5661b825d58e          0.83         43.74
+## 22 fb950517-8099-48c3-8de1-752bfb67ab70          0.82         41.82
+## 23 8cbf90de-828e-43f7-88db-975e5cf2d7af          0.84         45.12
+## 24 1c0e6f9d-c010-4c48-a182-2bfc60fe1474          0.83         45.11
+## 25 56e21d94-c766-4214-bd47-1880130f1670          0.82         40.20
+## 26 d55a94f7-976e-449b-a709-5661b825d58e          0.83         43.74
+## 27 fb950517-8099-48c3-8de1-752bfb67ab70          0.82         41.82
+## 28 8cbf90de-828e-43f7-88db-975e5cf2d7af          0.84         45.12
+## 29 1c0e6f9d-c010-4c48-a182-2bfc60fe1474          0.83         45.11
+## 30 56e21d94-c766-4214-bd47-1880130f1670          0.82         40.20
+## 31 cf361735-e68d-4ac3-bdf8-96043b80e188          0.86         44.54
+## 32 a450e8d1-e475-4c35-bc0f-8498aafded87          0.86         43.10
+## 33 d3dde8e9-9747-43f6-a0f6-2f3b8f2915b0          0.86         45.18
+## 34 8a1aee12-c67f-40c7-b3b1-2bd9e4b127f9          0.87         47.28
+## 35 7333b999-72be-4c01-97cb-719d0cce0b76          0.87         39.36
 ##    run_time_sec final_precision end_condition n_states n_obs n_actions
-## 58      1692.22        1.390330          <NA>       51    51        51
-## 59      2884.55        1.206410          <NA>       51    51        51
-## 60      1974.26        1.017950          <NA>       51    51        51
-## 61      2724.39        0.869657          <NA>       51    51        51
-##    discount                date model r  K  C sigma_g sigma_m
-## 58     0.99 2016-08-19 17:39:04 allen 1 40  0    0.02    0.05
-## 59     0.99 2016-08-19 18:27:51 allen 1 40  5    0.02    0.05
-## 60     0.99 2016-08-19 19:01:25 allen 1 40 10    0.02    0.05
-## 61     0.99 2016-08-19 19:47:28 allen 1 40 15    0.02    0.05
+## 21      1187.87        15.00200          <NA>       61    61        61
+## 22      1227.89        26.79250          <NA>       61    61        61
+## 23      1277.08        24.27580          <NA>       61    61        61
+## 24      1156.81        10.34910          <NA>       61    61        61
+## 25      1384.45         4.21038          <NA>       61    61        61
+## 26      1187.87        15.00200          <NA>       61    61        61
+## 27      1227.89        26.79250          <NA>       61    61        61
+## 28      1277.08        24.27580          <NA>       61    61        61
+## 29      1156.81        10.34910          <NA>       61    61        61
+## 30      1384.45         4.21038          <NA>       61    61        61
+## 31      1236.06        15.00200          <NA>       61    61        61
+## 32      1252.64        26.79250          <NA>       61    61        61
+## 33      1334.65        24.27580          <NA>       61    61        61
+## 34      1252.32        10.34910          <NA>       61    61        61
+## 35      1469.01         4.21038          <NA>       61    61        61
+##    discount                date model   r  K  C   sigma_g   sigma_m
+## 21     0.99 2016-08-15 04:47:41 allen 0.5 40  0 0.1285663 0.1285663
+## 22     0.99 2016-08-15 05:09:03 allen 0.5 40  5 0.1285663 0.1285663
+## 23     0.99 2016-08-15 05:31:15 allen 0.5 40 10 0.1285663 0.1285663
+## 24     0.99 2016-08-15 05:51:25 allen 0.5 40 15 0.1285663 0.1285663
+## 25     0.99 2016-08-15 06:15:25 allen 0.5 40 20 0.1285663 0.1285663
+## 26     0.99 2016-08-15 04:47:41 allen 0.5 40  0 0.1285663 0.1285663
+## 27     0.99 2016-08-15 05:09:03 allen 0.5 40  5 0.1285663 0.1285663
+## 28     0.99 2016-08-15 05:31:15 allen 0.5 40 10 0.1285663 0.1285663
+## 29     0.99 2016-08-15 05:51:25 allen 0.5 40 15 0.1285663 0.1285663
+## 30     0.99 2016-08-15 06:15:25 allen 0.5 40 20 0.1285663 0.1285663
+## 31     0.99 2016-08-15 07:14:31 allen 0.5 40  0 0.1285663 0.1285663
+## 32     0.99 2016-08-15 07:36:37 allen 0.5 40  5 0.1285663 0.1285663
+## 33     0.99 2016-08-15 07:59:51 allen 0.5 40 10 0.1285663 0.1285663
+## 34     0.99 2016-08-15 08:21:42 allen 0.5 40 15 0.1285663 0.1285663
+## 35     0.99 2016-08-15 08:47:16 allen 0.5 40 20 0.1285663 0.1285663
+```
+
+```r
+meta <- meta[1:5,]
 ```
 
 
@@ -90,10 +132,11 @@ Policy based on a uniform prior belief over the models:
 
 
 ```r
-C0 <- compute_plus_policy(alphas, models, model_prior  = c(1,0,0,0))
-C5 <- compute_plus_policy(alphas, models, model_prior  = c(0,1,0,0))
-C10 <- compute_plus_policy(alphas, models, model_prior = c(0,0,1,0))
-C15 <- compute_plus_policy(alphas, models, model_prior = c(0,0,0,1))
+C0 <- compute_plus_policy(alphas, models, model_prior  = c(1,0,0,0,0))
+C5 <- compute_plus_policy(alphas, models, model_prior  = c(0,1,0,0,0))
+C10 <- compute_plus_policy(alphas, models, model_prior = c(0,0,1,0,0))
+C15 <- compute_plus_policy(alphas, models, model_prior = c(0,0,0,1,0))
+C20 <- compute_plus_policy(alphas, models, model_prior = c(0,0,0,0,1))
 unif <- compute_plus_policy(alphas, models)
 
 df <- dplyr::bind_rows(C0, C5, C10, C15, unif, .id = "prior")
