@@ -17,8 +17,9 @@ knitr::opts_chunk$set(cache = TRUE)
 ```
 
 ```{r}
-log_dir <- "../../../pomdp-solutions-library/library"
-meta <- appl::meta_from_log(data.frame(model ="ricker", r = .6, n_states = 51), log_dir)[2:5,]
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10:15)), log_dir)
+meta <- meta[1:6,]
 meta
 ```
 

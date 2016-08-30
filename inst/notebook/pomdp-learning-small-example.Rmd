@@ -13,11 +13,29 @@ library("appl")
 library("ggplot2")
 library("tidyr")
 library("dplyr")
+library("pomdpplus")
 knitr::opts_chunk$set(cache = TRUE)
 ```
 
+
+
+## Import parameters from log
+
 ```{r}
-source("pomdp_learning.R")
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10, 15)), log_dir)[1:2,]
+meta
+setup <- meta[1,]
+
+states <- 0:(setup$n_states - 1)
+actions <- states
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
 ```
 
 
@@ -27,41 +45,20 @@ source("pomdp_learning.R")
 states <- 0:20
 actions <- states
 obs <- states
-
-sigma_g <- sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
+sigma_g <- 0.1 #sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
 sigma_m <- sigma_g 
-
 reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
-
-
 K1 <- function(x, h, r = 0.5, K = 10){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
-
-
 K2 <- function(x, h, r = 0.5, K = 15){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
-
 Ks <- list(K1, K2)
-
-
-```
-
-
-```{r}
 models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
-```
-
-
-## Planning solution
-
-Compute Q matrices using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
-
-```{r}
 alphas <- sarsop_plus(models, discount, precision = .1)
 ```
 
@@ -105,8 +102,7 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 set.seed(123)
 out <- sim_plus(models = models, discount = discount,
                 x0 = 5, a0 = 1, Tmax = 100, 
-                true_transition = models[[2]]$transition, 
-                true_observation = models[[2]]$observation, 
+                true_model = models[[2]], 
                 alphas = alphas)
 
 
