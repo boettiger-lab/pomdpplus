@@ -11,8 +11,6 @@
 #' @param Tmax number of time steps to simulate
 #' @param true_model a list of the transition matrix, observation matrix, and reward matrix used to simulate draws.
 #' @param alphas the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.
-#' @param verbose should function provide messages?
-#' @param mc.cores number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!
 #' @param ... additiional options to appl::sarsop, if alphas are not provided
 #'
 #' @return a list with elements
@@ -31,7 +29,7 @@
 #'
 sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
                      x0, a0 = 1, Tmax, true_model,
-                     alphas = NULL, verbose = TRUE, mc.cores = 1L, ...){
+                     alphas = NULL, ...){
 
   ## Initialize objects
   n_states <- dim(models[[1]][["observation"]])[1]
@@ -53,7 +51,7 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
 
   ## If alphas are not provided, assume we are running pomdpsol each time
   if(is.null(alphas)){
-    if(verbose) message("alphas not provided, recomputing them from SARSOP algorithm at each time step. This can be very slow!")
+    message("alphas not provided, recomputing them from SARSOP algorithm at each time step. This can be very slow!")
     update_alphas <- TRUE
   } else {
     update_alphas <- FALSE
@@ -63,7 +61,7 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   ## Forward simulation, updating belief
   for(t in 2:Tmax){
     ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
-    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,], verbose, mc.cores, ...)
+    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,], ...)
 
     ## Get the policy corresponding to each possible observation, given the current beliefs
     policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,], action[t-1])

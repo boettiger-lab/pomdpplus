@@ -4,8 +4,8 @@
 \alias{sarsop_plus}
 \title{sarsop_plus}
 \usage{
-sarsop_plus(models, discount, state_prior = NULL, verbose = TRUE,
-  mc.cores = 1L, ...)
+sarsop_plus(models, discount, state_prior = NULL, mc.cores = 1L,
+  log_data = NULL, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}
@@ -14,9 +14,9 @@ sarsop_plus(models, discount, state_prior = NULL, verbose = TRUE,
 
 \item{state_prior}{Prior belief that system is in state x_i before simulation starts}
 
-\item{verbose}{should function provide messages?}
+\item{mc.cores}{number of parallel cores to use}
 
-\item{mc.cores}{number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!}
+\item{log_data}{a data frame with information to be logged, one row for each model. Leave NULL if not logging}
 
 \item{...}{additiional options to appl::sarsop, if alphas are not provided}
 }

@@ -5,8 +5,7 @@
 \title{sim_plus}
 \usage{
 sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
-  a0 = 1, Tmax, true_model, alphas = NULL, verbose = TRUE,
-  mc.cores = 1L, ...)
+  a0 = 1, Tmax, true_model, alphas = NULL, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}
@@ -26,10 +25,6 @@ sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
 \item{true_model}{a list of the transition matrix, observation matrix, and reward matrix used to simulate draws.}
 
 \item{alphas}{the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.}
-
-\item{verbose}{should function provide messages?}
-
-\item{mc.cores}{number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!}
 
 \item{...}{additiional options to appl::sarsop, if alphas are not provided}
 }
