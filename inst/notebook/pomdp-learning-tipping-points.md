@@ -40,69 +40,33 @@ knitr::opts_chunk$set(cache = TRUE)
 
 
 ```r
-#log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
-#meta <- appl::meta_from_log(data.frame(model = "allen", r = 1, K = 40, sigma_m = 0.05), log_dir) ## two sets, differ only in sigma_m
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model = "allen", r = 0.5, K = 30), log_dir) 
 
-## larger noise example
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
-meta <- appl::meta_from_log(data.frame(model = "allen", r = 0.5, K = 40), log_dir) ## two sets, differ only in sigma_m
+meta <- meta[1:5,]
 
-meta 
+meta
 ```
 
 ```
 ##                                      id load_time_sec init_time_sec
-## 21 d55a94f7-976e-449b-a709-5661b825d58e          0.83         43.74
-## 22 fb950517-8099-48c3-8de1-752bfb67ab70          0.82         41.82
-## 23 8cbf90de-828e-43f7-88db-975e5cf2d7af          0.84         45.12
-## 24 1c0e6f9d-c010-4c48-a182-2bfc60fe1474          0.83         45.11
-## 25 56e21d94-c766-4214-bd47-1880130f1670          0.82         40.20
-## 26 d55a94f7-976e-449b-a709-5661b825d58e          0.83         43.74
-## 27 fb950517-8099-48c3-8de1-752bfb67ab70          0.82         41.82
-## 28 8cbf90de-828e-43f7-88db-975e5cf2d7af          0.84         45.12
-## 29 1c0e6f9d-c010-4c48-a182-2bfc60fe1474          0.83         45.11
-## 30 56e21d94-c766-4214-bd47-1880130f1670          0.82         40.20
-## 31 cf361735-e68d-4ac3-bdf8-96043b80e188          0.86         44.54
-## 32 a450e8d1-e475-4c35-bc0f-8498aafded87          0.86         43.10
-## 33 d3dde8e9-9747-43f6-a0f6-2f3b8f2915b0          0.86         45.18
-## 34 8a1aee12-c67f-40c7-b3b1-2bd9e4b127f9          0.87         47.28
-## 35 7333b999-72be-4c01-97cb-719d0cce0b76          0.87         39.36
+## 30 4ec09f2e-1e28-4ea0-8751-4d34d5387e73          0.31         52.92
+## 31 46ee73b8-5abf-4b6c-bd1e-39325b31292a          0.31         51.77
+## 32 4671da66-c97d-4aca-b549-e69ef7f734aa          0.32         50.84
+## 33 68aea28b-413e-4b05-b452-d62c1c948204          0.31         50.61
+## 34 1e0c4970-ee74-424d-81d5-675f416799b3          0.32         46.73
 ##    run_time_sec final_precision end_condition n_states n_obs n_actions
-## 21      1187.87        15.00200          <NA>       61    61        61
-## 22      1227.89        26.79250          <NA>       61    61        61
-## 23      1277.08        24.27580          <NA>       61    61        61
-## 24      1156.81        10.34910          <NA>       61    61        61
-## 25      1384.45         4.21038          <NA>       61    61        61
-## 26      1187.87        15.00200          <NA>       61    61        61
-## 27      1227.89        26.79250          <NA>       61    61        61
-## 28      1277.08        24.27580          <NA>       61    61        61
-## 29      1156.81        10.34910          <NA>       61    61        61
-## 30      1384.45         4.21038          <NA>       61    61        61
-## 31      1236.06        15.00200          <NA>       61    61        61
-## 32      1252.64        26.79250          <NA>       61    61        61
-## 33      1334.65        24.27580          <NA>       61    61        61
-## 34      1252.32        10.34910          <NA>       61    61        61
-## 35      1469.01         4.21038          <NA>       61    61        61
-##    discount                date model   r  K  C   sigma_g   sigma_m
-## 21     0.99 2016-08-15 04:47:41 allen 0.5 40  0 0.1285663 0.1285663
-## 22     0.99 2016-08-15 05:09:03 allen 0.5 40  5 0.1285663 0.1285663
-## 23     0.99 2016-08-15 05:31:15 allen 0.5 40 10 0.1285663 0.1285663
-## 24     0.99 2016-08-15 05:51:25 allen 0.5 40 15 0.1285663 0.1285663
-## 25     0.99 2016-08-15 06:15:25 allen 0.5 40 20 0.1285663 0.1285663
-## 26     0.99 2016-08-15 04:47:41 allen 0.5 40  0 0.1285663 0.1285663
-## 27     0.99 2016-08-15 05:09:03 allen 0.5 40  5 0.1285663 0.1285663
-## 28     0.99 2016-08-15 05:31:15 allen 0.5 40 10 0.1285663 0.1285663
-## 29     0.99 2016-08-15 05:51:25 allen 0.5 40 15 0.1285663 0.1285663
-## 30     0.99 2016-08-15 06:15:25 allen 0.5 40 20 0.1285663 0.1285663
-## 31     0.99 2016-08-15 07:14:31 allen 0.5 40  0 0.1285663 0.1285663
-## 32     0.99 2016-08-15 07:36:37 allen 0.5 40  5 0.1285663 0.1285663
-## 33     0.99 2016-08-15 07:59:51 allen 0.5 40 10 0.1285663 0.1285663
-## 34     0.99 2016-08-15 08:21:42 allen 0.5 40 15 0.1285663 0.1285663
-## 35     0.99 2016-08-15 08:47:16 allen 0.5 40 20 0.1285663 0.1285663
-```
-
-```r
-meta <- meta[1:5,]
+## 30      1433.61        14.29720          <NA>       41    41        41
+## 31      1699.65        13.83400          <NA>       41    41        41
+## 32      1488.34        10.88400          <NA>       41    41        41
+## 33      1513.32        11.86770          <NA>       41    41        41
+## 34      5098.18         9.60597          <NA>       41    41        41
+##    discount                date model   r  K  C sigma_g sigma_m memory
+## 30     0.99 2016-09-01 05:48:02 allen 0.5 30  0     0.1    0.25  15612
+## 31     0.99 2016-09-01 06:16:33 allen 0.5 30  3     0.1    0.25  15612
+## 32     0.99 2016-09-01 06:41:33 allen 0.5 30  6     0.1    0.25  15612
+## 33     0.99 2016-09-01 07:06:58 allen 0.5 30  9     0.1    0.25  15612
+## 34     0.99 2016-09-01 08:32:08 allen 0.5 30 12     0.1    0.25  15612
 ```
 
 
@@ -151,10 +115,10 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 
 
 ```r
-set.seed(123)
+set.seed(1234)
 out <- sim_plus(models = models, discount = discount,
                 x0 = 20, a0 = 1, Tmax = 100, 
-                true_model = models[[3]], 
+                true_model = models[[2]], 
                 alphas = alphas)
 
 
