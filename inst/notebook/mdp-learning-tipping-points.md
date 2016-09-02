@@ -272,7 +272,7 @@ Under each of the above scenarios in the Ricker model, the value is realtively i
 Tmax <- 50
 true_i <- 3
 unif <- compute_mdp_policy(C_matrices, utility, discount)
-df <- mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax)
+df <- mdp_sim(C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax, policy = unif$policy)
 ```
 
 
@@ -288,7 +288,7 @@ df %>% ggplot(aes(time, state)) + geom_line() + geom_line(aes(y = action), col =
 ```r
 sims <- 
 map_df(1:100, 
-       function(i) mdp_policy_sim(unif$policy, C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax),
+       function(i) mdp_sim(C_matrices[[true_i]], utility, discount, x0 = 30, Tmax = Tmax, policy = unif$policy),
   .id = "rep")
 ```
 
@@ -314,13 +314,45 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 ```
 
 
+### What if the true model is pomdp?
+
+
+```r
+matrices <- appl::fisheries_matrices(states = states, actions = actions, 
+                             observed_states = states, reward_fn = reward_fn,
+                             f = C_models[[true_i]], sigma_g = sigma_g, sigma_m = 0.25)
+observation <- matrices$observation  
+
+sims <- 
+map_df(1:100, 
+       function(i) mdp_sim(C_matrices[[true_i]], reward = utility, discount = discount, x0 = 30, Tmax = Tmax, observation = observation, policy = unif$policy),
+  .id = "rep")
+
+sims %>% 
+  ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.1)
+```
+
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
+```r
+#How many have collapsed? 
+sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
+```
+
+```
+##   sum(state == 1)
+## 1              74
+```
+
+
+
 ## Learning
 
 
 ```r
 Tmax <- 50
 true_i <- 3
-out <- mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])
+out <- mdp_sim(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])
 ```
 
 Simulation trajectories:
@@ -331,7 +363,7 @@ out$df %>% select(-value) %>% gather(series, stock, -time) %>%
   ggplot(aes(time, stock, color = series)) + geom_line()
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 Final belief over models
 
@@ -340,7 +372,7 @@ Final belief over models
 barplot(out$posterior[Tmax,])
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 
 Replicate simulations:
@@ -349,7 +381,7 @@ Replicate simulations:
 ```r
 sims <- 
 map_df(1:100, 
-       function(i) mdp_learning(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])$df, 
+       function(i) mdp_sim(C_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = C_matrices[[true_i]])$df, 
   .id = "rep")
 ```
 
@@ -360,9 +392,9 @@ sims %>%
   ggplot(aes(time, state, group = rep)) + geom_line(alpha = 0.5)
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
-How many have collapsed? (Note that `mdp_learning` recomputes policy based on finite future time window)
+How many have collapsed? (Note that `mdp_sim` recomputes policy based on finite future time window)
 
 
 ```r
@@ -371,7 +403,7 @@ sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1               3
+## 1               5
 ```
 
 
@@ -385,7 +417,7 @@ We have a much easier time learning the right value of the other parameters.
 ```r
 Tmax <- 50
 true_i <- 3
-out <- mdp_learning(K_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = K_matrices[[true_i]])
+out <- mdp_sim(K_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = K_matrices[[true_i]])
 ```
 
 Simulation trajectories:
@@ -396,7 +428,7 @@ out$df %>% select(-value) %>% gather(series, stock, -time) %>%
   ggplot(aes(time, stock, color = series)) + geom_line()
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
 
 Final belief over models
 
@@ -405,7 +437,7 @@ Final belief over models
 barplot(out$posterior[Tmax,])
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
 
 
@@ -417,7 +449,7 @@ Learning the r parameter is also quite efficient:
 ```r
 Tmax <- 50
 true_i <- 3
-out <- mdp_learning(r_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = r_matrices[[true_i]])
+out <- mdp_sim(r_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = r_matrices[[true_i]])
 ```
 
 Simulation trajectories:
@@ -428,7 +460,7 @@ out$df %>% select(-value) %>% gather(series, stock, -time) %>%
   ggplot(aes(time, stock, color = series)) + geom_line()
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
 Final belief over models
 
@@ -437,7 +469,7 @@ Final belief over models
 barplot(out$posterior[Tmax,])
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
 
 
 
@@ -448,7 +480,7 @@ barplot(out$posterior[Tmax,])
 ```r
 Tmax <- 50
 true_i <- 3
-out <- mdp_learning(sigma_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = sigma_matrices[[true_i]])
+out <- mdp_sim(sigma_matrices, utility, discount, x0 = 30, Tmax = Tmax, true_transition = sigma_matrices[[true_i]])
 ```
 
 Simulation trajectories:
@@ -459,7 +491,7 @@ out$df %>% select(-value) %>% gather(series, stock, -time) %>%
   ggplot(aes(time, stock, color = series)) + geom_line()
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
 
 Final belief over models
 
@@ -468,7 +500,7 @@ Final belief over models
 barplot(out$posterior[Tmax,])
 ```
 
-![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
+![](mdp-learning-tipping-points_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
 
 
 

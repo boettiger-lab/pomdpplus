@@ -18,15 +18,13 @@ knitr::opts_chunk$set(cache = TRUE)
 ```
 
 ```{r}
-#log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
-#meta <- appl::meta_from_log(data.frame(model = "allen", r = 1, K = 40, sigma_m = 0.05), log_dir) ## two sets, differ only in sigma_m
 
-## larger noise example
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/archive"
-meta <- appl::meta_from_log(data.frame(model = "allen", r = 0.5, K = 40), log_dir) ## two sets, differ only in sigma_m
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model = "allen", r = 0.5, K = 30), log_dir) 
 
-meta 
 meta <- meta[1:5,]
+
+meta
 ```
 
 
@@ -73,10 +71,10 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 
 
 ```{r}
-set.seed(123)
+set.seed(1234)
 out <- sim_plus(models = models, discount = discount,
                 x0 = 20, a0 = 1, Tmax = 100, 
-                true_model = models[[3]], 
+                true_model = models[[2]], 
                 alphas = alphas)
 
 

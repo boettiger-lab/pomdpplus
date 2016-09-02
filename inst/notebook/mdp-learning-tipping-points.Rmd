@@ -277,7 +277,7 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 ```{r}
 matrices <- appl::fisheries_matrices(states = states, actions = actions, 
                              observed_states = states, reward_fn = reward_fn,
-                             f = C_models[[true_i]], sigma_g = sigma_g, sigma_m = 0.28)
+                             f = C_models[[true_i]], sigma_g = sigma_g, sigma_m = 0.25)
 observation <- matrices$observation  
 
 sims <- 
