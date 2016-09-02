@@ -13,7 +13,7 @@ library("ggplot2")
 library("tidyr")
 library("purrr")
 library("dplyr")
-knitr::opts_chunk$set(cache = TRUE)
+#knitr::opts_chunk$set(cache = TRUE)
 ```
 
 Initialize a simple POMDP model for fisheries:
@@ -21,12 +21,12 @@ Initialize a simple POMDP model for fisheries:
 
 ```r
 set.seed(1234)
-states <- 0:60
+states <- 0:40
 actions <- states
 observed_states <- states
 reward_fn <-  function(x, a) pmin(x, a)
-sigma_g <- 0.1286 # approx var of unif 0.1
-sigma_m <- 0.1286
+sigma_g <- 0.1 # approx var of unif 0.1
+sigma_m <- 0.25
 discount <- 0.99
 Tmax <- 20
 ```
@@ -56,11 +56,11 @@ K_models <- lapply(Ks, function(K)
 
 
 #Cs <- seq(0,25, length.out = 11)
-Cs <- seq(0, 20, by = 5)
+Cs <- seq(0, 12, by = 3)
 C_models <- lapply(Cs, function(C) 
   function(x, h){
      r <- 0.5
-     K <- 40
+     K <- 30
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) * (s - C) / K )
   })
@@ -109,7 +109,7 @@ from that range.
 
 Likewise, we consider $K \in [5, 45]$ compared to fixing C at a low ($K = 9$), average ($K = 25$), and high values ($K = 45$)
 
-For $C$ parameter in the Allen model, we consider $C \in [0, 20]$ compared to fixing C at a low ($C = 5$), average ($C = NA$), and high values ($C = NA$)
+For $C$ parameter in the Allen model, we consider $C \in [0, 12]$ compared to fixing C at a low ($C = 3$), average ($C = NA$), and high values ($C = NA$)
 
 
 For $\sigma$ parameter in the Ricker model, we consider $\sigma \in [0.01, 0.5]$ compared to fixing sigma at a low ($\sigma = 0.059$), average ($\sigma = 0.255$), and high values ($\sigma = 0.5$)
@@ -213,6 +213,8 @@ relative_value <- list(list(filter(policies, model=="r"), r_matrices, "r"),
 ```
 
 ```
+## Note: max number of iterations reached
+## Note: max number of iterations reached
 ## Note: max number of iterations reached
 ## Note: max number of iterations reached
 ## Note: max number of iterations reached
@@ -341,7 +343,7 @@ sims %>% filter(time == Tmax) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1              74
+## 1              57
 ```
 
 
@@ -403,7 +405,7 @@ sims %>% filter(time == Tmax-1) %>% summarise(sum(state == 1))
 
 ```
 ##   sum(state == 1)
-## 1               5
+## 1               0
 ```
 
 

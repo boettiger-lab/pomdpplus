@@ -18,19 +18,19 @@ library("ggplot2")
 library("tidyr")
 library("purrr")
 library("dplyr")
-knitr::opts_chunk$set(cache = TRUE)
+#knitr::opts_chunk$set(cache = TRUE)
 ```
 
 Initialize a simple POMDP model for fisheries:
 
 ```{r}
 set.seed(1234)
-states <- 0:60
+states <- 0:40
 actions <- states
 observed_states <- states
 reward_fn <-  function(x, a) pmin(x, a)
-sigma_g <- 0.1286 # approx var of unif 0.1
-sigma_m <- 0.1286
+sigma_g <- 0.1 # approx var of unif 0.1
+sigma_m <- 0.25
 discount <- 0.99
 Tmax <- 20
 ```
@@ -59,11 +59,11 @@ K_models <- lapply(Ks, function(K)
 
 
 #Cs <- seq(0,25, length.out = 11)
-Cs <- seq(0, 20, by = 5)
+Cs <- seq(0, 12, by = 3)
 C_models <- lapply(Cs, function(C) 
   function(x, h){
      r <- 0.5
-     K <- 40
+     K <- 30
      s <- pmax(x - h, 0)
      s * exp(r * (1 - s / K) * (s - C) / K )
   })
