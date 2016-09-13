@@ -41,6 +41,9 @@ testthat::test_that("plus prefers the true model after learning period", {
 
 ## Check logging works
 log <- tempdir()
+## make sure log is empty first
+lapply(list.files(log), function(x) unlink(paste(log, x, sep = "/")))
+
 log_data <- data.frame(model = "ricker", r = r, K = K, C = NA, sigma_g = sigma_g, sigma_m = sigma_m)
 
 alphas <- sarsop_plus(models, discount, precision = 1,
@@ -59,3 +62,6 @@ testthat::expect_identical(alphas, log_alphas)
 testthat::expect_identical(models, log_models)
 
 log_fs <- f_from_log(meta)
+
+lapply(list.files(log), function(x) unlink(paste(log, x, sep = "/")))
+

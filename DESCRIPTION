@@ -18,4 +18,4 @@ Imports:
 RoxygenNote: 5.0.1
 Remotes:
   cboettig/appl@cboettig
-
+  boettiger-lab/mdplearning
