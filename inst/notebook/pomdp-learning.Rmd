@@ -57,7 +57,7 @@ models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward
 
 ## Planning solution
 
-Compute Q matrices using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
+Compute alpha vectors using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
 
 ```{r}
 alphas <- sarsop_plus(models, discount, precision = 1)
