@@ -1,0 +1,328 @@
+---
+output:
+  html_document: 
+    keep_md: yes
+    variant: markdown_github
+---  
+
+# Setup
+
+```{r message=FALSE}
+library("mdplearning")
+library("appl")
+library("pomdpplus")
+
+library("ggplot2")
+library("tidyr")
+library("purrr")
+library("dplyr")
+
+library("seewave") ## For KL divergence only
+
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+(Scaled data created from RAM data via script in `mdplearning/data-raw/scaled_data.R`)
+
+
+
+```{r eval=FALSE}
+library("nimble")
+data("scaled_data")
+ricker_code <- nimbleCode({
+  x[1] <- x0
+  for(t in 1:(N-1)){
+    s[t] <-  x[t] - min(x[t], a[t])
+    mu[t] <- log(s[t])  + r * (1 - s[t] / K) 
+    x[t+1] ~ dlnorm(mu[t], sd = sigma) 
+  }
+})
+
+ricker_model <- nimbleModel(code = ricker_code, 
+                            constants = list(N = length(scaled_data$a), a = scaled_data$a),
+                            inits =  list(K = 1, r = 0.1, sigma = 0.1, x0 = scaled_data$y[1]), 
+                            data = data.frame(x = scaled_data$y))
+
+mloglik <- function(pars){
+    if(any(pars < 0 )) return(1e12)
+    ricker_model$r <- pars[1]
+    ricker_model$K <- pars[2]
+    ricker_model$sigma <- pars[3]
+    - calculate(ricker_model)
+}
+
+ricker_fit <- optim(c(r = .1, K = 1, sigma = 0.1), mloglik, control = list(maxit = 20000))
+ricker_fit$par
+```
+
+
+
+## Problem definition
+
+(Code to create the logged alpha vectors; cached & not evaluated, very slow)
+
+```{r eval=FALSE}
+log_dir = "."
+
+## Parameters from nimble's maximum likelihood estimate
+K = 0.9903371
+r = 0.05699246
+sigma_g = 0.01720091
+
+states <- seq(0,1.2, length=100) # Vector of all possible states
+actions <- seq(0,.8, length=100)   # Vector of actions: harvest
+obs <- states
+reward_fn <- function(x,h) pmin(x,h)
+
+## Create a data frame of all parameter combinations to be run, along with fixed parameters
+vars <- expand.grid(r = seq(0.05, 0.3, by =0.05), sigma_m = c(0.1, 0.3, 0.6))
+fixed <- data.frame(model = "ricker", sigma_g = sigma_g, discount = 0.99, 
+                    precision = 0.0000001, K = K, C = NA,  max_state = max(states),
+                    max_obs = max(obs), max_action = max(actions), min_state = min(states),
+                    min_obs = min(obs), min_action = min(actions))
+models <- data.frame(vars, fixed)
+
+
+## Detect available memory (linux servers only)
+memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])) / 1000)
+
+## Compute alphas for the above examples
+for(i in 1:dim(models)[1]) {
+## Select the model
+  f <- switch(models[i, "model"], 
+    allen = appl:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
+    ricker = appl:::ricker(models[i, "r"], models[i, "K"])
+  )
+## Determine the matrices
+  m <- appl::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
+                          sigma_g = models[i, "sigma_g"], sigma_m  = models[i, "sigma_m"])
+## record data for the log
+  log_data <- data.frame(model = models[i, "model"], r = models[i, "r"], K  = models[i, "K"], 
+                         C = models[i, "C"], sigma_g = models[i, "sigma_g"], sigma_m = models[i, "sigma_m"],
+                         memory = memory)
+## run sarsop
+  alpha <- appl::sarsop(m$transition, m$observation, m$reward, 
+                        discount = models[i, "discount"], 
+                        precision = models[i, "precision"], memory = memory,
+                        log_dir = log_dir, log_data = log_data)
+
+}
+
+```
+
+Identify available solutions in the log that match the desired parameters
+
+```{r}
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+
+## 100 states, 30 GB solution
+meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 100, sigma_m = 0.3), log_dir)
+meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
+meta <- meta %>% filter(date > as.Date("2016-09-10"))
+
+## 50 states, 60 GB solution
+#meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 50, sigma_m = 0.3), log_dir)
+#meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
+
+knitr::kable(meta)
+```
+
+Read in the POMDP problem specification from the log
+
+```{r}
+setup <- meta[1,]
+states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+actions <- seq(0, setup$max_action, length=setup$n_actions)   # Vector of actions: harvest
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
+```
+
+
+reformat model solutions for use by the MDP functions as well:
+
+```{r}
+transitions <- lapply(models, `[[`, "transition")
+reward <- models[[1]]$reward
+observation <- models[[1]]$observation
+```
+
+--------------------
+
+# Verfication & Validation
+
+## Examine the policies from POMDP/PLUS solutions
+
+Compute the deterministic optimum solution:
+
+```{r}
+f <- f_from_log(meta)[[1]]
+S_star <- optimize(function(x) x / discount - f(x,0), c(min(states),max(states)))$minimum
+h <- pmax(states - S_star,  0)
+policy <- sapply(h, function(h) which.min((abs(h - actions))))
+det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
+```
+
+
+Compare a uniform prior to individial cases:
+
+```{r}
+low <-  compute_plus_policy(alphas, models, c(1,0,0,0,0,0))
+unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
+high <-  compute_plus_policy(alphas, models, c(0, 0, 0, 0, 0, 1))
+df <- dplyr::bind_rows(low = low, unif = unif, high = high, det = det, .id = "prior")
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
+
+```
+
+
+
+------------
+
+# Analysis
+
+## Hindcast: Historical catch and stock
+
+```{r}
+set.seed(123)
+data("scaled_data")
+y <- sapply(scaled_data$y, function(y) which.min(abs(states - y)))
+a <- sapply(scaled_data$a, function(a) which.min(abs(actions - a)))
+```
+
+
+### Compute PLUS optimum vs historical data:
+
+
+```{r}
+plus_hindcast <- compare_plus(models = models, discount = discount,
+                    obs = y, action = a, alphas = alphas)
+```
+
+### Compare MDP optimum vs historical data: 
+
+```{r}
+mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
+```
+
+
+### Merge and plot resulting optimal solutions
+
+```{r}
+
+left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
+          rename(mdp_hindcast$df, mdp = optimal)) %>%
+
+  dplyr::mutate(action = actions[action], state = states[state], plus = actions[plus], mdp = actions[mdp]) %>%
+  tidyr::gather(variable, stock, -time) %>% 
+  ggplot(aes(time, stock, color = variable)) + geom_line()  + geom_point()
+```
+
+## Compare rates of learning
+
+```{r}
+Tmax <- length(plus_hindcast$model_posterior[[1]])
+
+# delta function for true model distribution
+h_star = array(0,dim = length(models)) 
+h_star[1] = 1
+## Fn for the base-2 KL divergence from true model, in a friendly format
+kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
+
+## Compute KL over models (code permits replicates though we have only 1 rep here)
+plus_hindcast$model_posterior %>% data.frame(time = 1:Tmax, rep = 1) %>%
+  gather(model, value, -time, -rep) %>%
+  group_by(time, rep) %>% 
+  summarise(plus = kl2(value)) -> 
+  plus_KL
+
+mdp_hindcast$posterior %>% data.frame(time = 1:Tmax, rep = 1) %>%
+  gather(model, value, -time, -rep) %>%
+  group_by(time, rep) %>% 
+  summarise(mdp = kl2(value)) -> 
+  mdp_KL
+
+left_join(mdp_KL, plus_KL) %>%
+  gather(method, KL, -time, -rep) %>%
+  
+  ggplot(aes(time, KL, col = method)) + 
+    stat_summary(geom="line", fun.y = mean, lwd = 1) 
+```
+
+Show the final belief over models for pomdp and mdp:
+
+```{r}
+barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
+```
+
+
+```{r}
+barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
+```
+
+
+
+## Forecast under PLUS
+
+All forecasts start from final stock, go forward an equal length of time:
+
+```{r}
+#x0 <- which.min(abs(1 - states)) # Initial stock, for hindcasts
+#x0 <- y[length(y)] # Final stock, e.g. forcasts
+x0 <- 18 ## A slightly higher state than final stock, so recovery is numerically possible
+Tmax <- length(y)
+set.seed(123)
+```
+
+
+Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
+
+```{r}
+plus_forecast <- 
+plus_replicate(100, 
+               sim_plus(models = models, discount = discount,
+                model_prior = as.numeric(plus_hindcast$model_posterior[length(y)-1, ]),
+                state_prior = as.numeric(plus_hindcast$state_posterior[length(y)-1, ]),
+                x0 = x0, Tmax = Tmax, 
+                true_model = models[[1]], 
+                alphas = alphas), mc.cores = 3)
+
+
+```
+
+## Forecast under MDP
+
+We simulate replicates under MDP learning (with observation uncertainty):
+
+```{r}
+set.seed(123)
+plus_replicate(100, 
+               mdp_learning(transition = transitions, reward = models[[1]]$reward, 
+               discount = discount, x0 = x0,  Tmax = Tmax,
+               true_transition = transitions[[1]], observation = models[[1]]$observation))
+```
+
+
+```{r}
+## Combine and plot
+bind_rows(plus_forecast$df %>% data.frame(method = "plus"),
+          mdp_forecast$df %>% data.frame(method = "mdp")) %>%
+mutate(state = states[state], action = actions[action]) %>% 
+select(-value, -obs) %>%
+gather(variable, stock, -time, -rep) %>%
+
+ggplot(aes(time, stock)) + 
+stat_summary(aes(color = method), geom="line", fun.y = mean) +
+stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_se, alpha = 0.5) + 
+facet_wrap(~variable, ncol = 1, scales = "free_y")
+
+```
+
+
