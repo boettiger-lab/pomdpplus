@@ -21,48 +21,56 @@ knitr::opts_chunk$set(cache = TRUE)
 ## Problem definition
 
 
-```{r}
-states <- 0:40
+```{r eval = FALSE}
+## Not run, all parameters read from log instead
+
+states <- 0:21
 actions <- states
 obs <- states
-
-sigma_g <- sqrt(log(1 + 0.1 / 6)) # Scale the log-standard-deviation to result in similar variance to a uniform distribution of width 0.5
+sigma_g <- 0.1
 sigma_m <- sigma_g
-
 reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
-
-K1 <- function(x, h, r = 1, K = 35){
+K1 <- function(x, h, r = 1, K = 10){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
-
-
-K2 <- function(x, h, r = 1, K = 20){
+K2 <- function(x, h, r = 1, K = 15){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
+models <- lapply(list(K1, K2), function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 
-Ks <- list(K1, K2)
-
-```
-
-
-
-```{r}
-models <- lapply(Ks, function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
-```
-
-
-## Planning solution
-
-Compute alpha vectors using pomdpsol for each model (intensive).  Since we do not specify a prior belief over states, uses default assumption of uniform belief over states.
-
-```{r}
+## Potentially intensive step
 alphas <- sarsop_plus(models, discount, precision = 1)
 ```
 
+
+
+
+Alternately, we could import parameters from log
+
+```{r}
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10, 15)), log_dir)[1:2,]
+meta
+setup <- meta[1,]
+states <- 0:(setup$n_states - 1)
+actions <- states
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
+```
+
+
+
+
+## Planning solution
 
 We can compare results for a different priors over states.  For simplicity of interpretation, we assume the model is known to be model 2 (model prior `(0,1)`)
 As expected, the policy is much more conservative when prior belief is lower!  
