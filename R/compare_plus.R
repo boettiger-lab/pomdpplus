@@ -32,31 +32,32 @@ compare_plus <- function(models, discount, model_prior = NULL, state_prior = NUL
                      obs, action,
                      alphas = NULL, verbose = TRUE, mc.cores = 1L, ...){
   ## Initialize objects
-  Tmax <- length(obs) - 1
+  Tmax <- length(obs)
   n_states <- dim(models[[1]][["observation"]])[1]
   n_models <- length(models)
-  optimal <- numeric(Tmax+1)
-  model_posterior <- array(NA, dim = c(Tmax+1, n_models))
-  state_posterior <- array(NA, dim = c(Tmax+1, n_states))
+  optimal <- numeric(Tmax)
+  optimal[1] <- NA
+  model_posterior <- array(NA, dim = c(Tmax, n_models))
+  state_posterior <- array(NA, dim = c(Tmax, n_states))
   ## Defaults if not provided
   if(is.null(state_prior))  state_prior <- rep(1, n_states) / n_states
   if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
   ## Assign starting values
-  model_posterior[2,] <- model_prior
-  state_posterior[2,] <- state_prior
+  model_posterior[1,] <- model_prior
+  state_posterior[1,] <- state_prior
 
   ## Forward iteration, updating belief
   for(t in 2:Tmax){
-    policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,], action[t-1])
+    policy <- compute_plus_policy(alphas, models, model_posterior[t-1,], state_posterior[t-1,], action[t-1])
     optimal[t] <- policy$policy[obs[t]]
-    model_posterior[t+1,] <- update_model_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
-    state_posterior[t+1,] <- update_state_belief(state_posterior[t,], model_posterior[t,], models, obs[t], action[t-1])
+    model_posterior[t,] <- update_model_belief(state_posterior[t-1,], model_posterior[t-1,], models, obs[t], action[t-1])
+    state_posterior[t,] <- update_state_belief(state_posterior[t-1,], model_posterior[t-1,], models, obs[t], action[t-1])
   }
   ## assemble data frame without dummy year for starting action
-  df <- data.frame(time = 0:Tmax, obs, action, optimal)[2:Tmax,]
-  list(df = df,
-       model_posterior = as.data.frame(model_posterior[2:(Tmax+1),]),
-       state_posterior = as.data.frame(state_posterior[2:(Tmax+1),]))
+
+  list(df = data.frame(time = 1:Tmax, obs, action, optimal),
+       model_posterior = as.data.frame(model_posterior),
+       state_posterior = as.data.frame(state_posterior))
 }
 
 
