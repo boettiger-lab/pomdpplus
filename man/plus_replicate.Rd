@@ -16,8 +16,6 @@ plus_replicate(reps, expr, ...)
 \value{
 Same structure as returned by the given expression (e.g. sim_plus),
  but with replicates appended as additional rows, with an indicator column
- @importFrom parallel mclapply
- @export
 }
 \description{
 Replicate sim_plus calls, potentially in parallel. Can also replicate mdp_learning

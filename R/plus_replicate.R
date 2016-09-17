@@ -7,8 +7,9 @@
 #' @param ... additional arguments to \code{\link{mclapply}}, such as mc.cores
 #' @return Same structure as returned by the given expression (e.g. sim_plus),
 #'  but with replicates appended as additional rows, with an indicator column
-#'  @importFrom parallel mclapply
-#'  @export
+#' @importFrom parallel mclapply
+#' @importFrom dplyr bind_rows
+#' @export
 #'
 plus_replicate <- function(reps, expr, ...){
 
@@ -36,10 +37,10 @@ plus_replicate <- function(reps, expr, ...){
 }
 
 ## Avoid introducing a hard dplyr dependency
-bind_rows <- function(..., .id = NULL){
-  L <- list(...)
-  out <- do.call(rbind, lapply(1:length(L), function(i)
-    data.frame(rep = i, L[[i]])))
-  names(out)[1] <- .id
-  out
-}
+#bind_rows <- function(L, .id = "rep"){
+#  #L <- list(...)
+#  L2 <- lapply(1:length(L), function(i) data.frame(rep = i, L[[i]]))
+#  out <- do.call(rbind,L2)
+#  names(out)[1] <- .id
+#  out
+#}

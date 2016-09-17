@@ -14,7 +14,8 @@ Suggests:
     testthat
 Imports:
     appl,
-    stats
+    stats,
+    dplyr
 RoxygenNote: 5.0.1
 Remotes:
   cboettig/appl@cboettig

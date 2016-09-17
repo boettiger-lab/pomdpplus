@@ -19,7 +19,8 @@ library("dplyr")
 
 library("seewave") ## For KL divergence only
 
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = TRUE, message=FALSE)
+theme_set(theme_bw())
 ```
 
 (Scaled data created from RAM data via script in `mdplearning/data-raw/scaled_data.R`)
@@ -195,6 +196,14 @@ set.seed(123)
 data("scaled_data")
 y <- sapply(scaled_data$y, function(y) which.min(abs(states - y)))
 a <- sapply(scaled_data$a, function(a) which.min(abs(actions - a)))
+Tmax <- length(y)
+
+data("bluefin_tuna")
+to_mt <- max(bluefin_tuna$total) # 1178363 # scaling factor for data
+states_mt <- to_mt * states
+actions_mt <- to_mt * actions
+year <- 1952:2009
+future <- 2009:2067
 ```
 
 
@@ -216,45 +225,37 @@ mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action 
 ### Merge and plot resulting optimal solutions
 
 ```{r}
-
 left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
           rename(mdp_hindcast$df, mdp = optimal)) %>%
-
-  dplyr::mutate(action = actions[action], state = states[state], plus = actions[plus], mdp = actions[mdp]) %>%
-  tidyr::gather(variable, stock, -time) %>% 
-  ggplot(aes(time, stock, color = variable)) + geom_line()  + geom_point()
+mutate("actual catch" = actions_mt[action], "estimated stock" = states_mt[state], 
+       plus = actions_mt[plus], mdp = actions_mt[mdp], time = year[time]) %>%
+       select(-state, -action) %>%
+gather(variable, stock, -time) %>% 
+ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
 ```
 
 ## Compare rates of learning
 
 ```{r}
-Tmax <- length(plus_hindcast$model_posterior[[1]])
-
 # delta function for true model distribution
 h_star = array(0,dim = length(models)) 
 h_star[1] = 1
 ## Fn for the base-2 KL divergence from true model, in a friendly format
 kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 
-## Compute KL over models (code permits replicates though we have only 1 rep here)
-plus_hindcast$model_posterior %>% data.frame(time = 1:Tmax, rep = 1) %>%
-  gather(model, value, -time, -rep) %>%
-  group_by(time, rep) %>% 
-  summarise(plus = kl2(value)) -> 
-  plus_KL
+bind_rows(plus = plus_hindcast$model_posterior,
+          mdp = mdp_hindcast$posterior, 
+          .id = "method") %>%
+mutate(time = year[rep(1:Tmax,2)], rep = 1) %>%
+gather(model, value, -time, -rep, -method) %>%
+group_by(time, rep, method) %>% 
+summarise(kl = kl2(value)) %>%
 
-mdp_hindcast$posterior %>% data.frame(time = 1:Tmax, rep = 1) %>%
-  gather(model, value, -time, -rep) %>%
-  group_by(time, rep) %>% 
-  summarise(mdp = kl2(value)) -> 
-  mdp_KL
-
-left_join(mdp_KL, plus_KL) %>%
-  gather(method, KL, -time, -rep) %>%
-  
-  ggplot(aes(time, KL, col = method)) + 
-    stat_summary(geom="line", fun.y = mean, lwd = 1) 
+ggplot(aes(time, kl, col = method)) + 
+stat_summary(geom="line", fun.y = mean, lwd = 1)
 ```
+
+### Final beliefs
 
 Show the final belief over models for pomdp and mdp:
 
@@ -269,59 +270,68 @@ barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 
 
 
-## Forecast under PLUS
+## Forecast simulations under PLUS and MDP-learning
 
 All forecasts start from final stock, go forward an equal length of time:
 
 ```{r}
 #x0 <- which.min(abs(1 - states)) # Initial stock, for hindcasts
-#x0 <- y[length(y)] # Final stock, e.g. forcasts
-x0 <- 18 ## A slightly higher state than final stock, so recovery is numerically possible
+#x0 <- y[length(y)] # Final stock, e.g. forcasts, = 9
+
+## too low a final value causes MDP to crash too soon
+x0 <- 12
 Tmax <- length(y)
 set.seed(123)
 ```
-
 
 Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
 
 ```{r}
 plus_forecast <- 
-plus_replicate(100, 
+plus_replicate(50, 
                sim_plus(models = models, discount = discount,
-                model_prior = as.numeric(plus_hindcast$model_posterior[length(y)-1, ]),
-                state_prior = as.numeric(plus_hindcast$state_posterior[length(y)-1, ]),
-                x0 = x0, Tmax = Tmax, 
-                true_model = models[[1]], 
-                alphas = alphas), mc.cores = 3)
+                        model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
+                        state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
+                        x0 = x0, Tmax = Tmax, true_model = models[[1]], alphas = alphas), 
+               mc.cores = parallel::detectCores())
 
 
 ```
-
-## Forecast under MDP
 
 We simulate replicates under MDP learning (with observation uncertainty):
 
 ```{r}
 set.seed(123)
-plus_replicate(100, 
+mdp_forecast <- 
+plus_replicate(50, 
                mdp_learning(transition = transitions, reward = models[[1]]$reward, 
-               discount = discount, x0 = x0,  Tmax = Tmax,
-               true_transition = transitions[[1]], observation = models[[1]]$observation))
+                            model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
+                            discount = discount, x0 = x0,  Tmax = Tmax,
+                            true_transition = transitions[[1]], 
+                            observation = models[[1]]$observation),
+               mc.cores = parallel::detectCores())
 ```
 
+## Compare forecasts
 
 ```{r}
-## Combine and plot
-bind_rows(plus_forecast$df %>% data.frame(method = "plus"),
-          mdp_forecast$df %>% data.frame(method = "mdp")) %>%
-mutate(state = states[state], action = actions[action]) %>% 
-select(-value, -obs) %>%
-gather(variable, stock, -time, -rep) %>%
+historical <- bluefin_tuna[c("tsyear", "total", "catch_landings")] %>% 
+  rename(time = tsyear, state = total, action = catch_landings) %>% 
+  mutate(method = "historical")
 
+bind_rows(plus = plus_forecast$df, 
+          mdp = mdp_forecast$df,
+          .id = "method")  %>% 
+select(-value, -obs) %>% 
+mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
+bind_rows(historical) %>%
+rename("catch (MT)" = action, "stock (MT)" = state) %>%  
+gather(variable, stock, -time, -rep, -method) %>%
 ggplot(aes(time, stock)) + 
-stat_summary(aes(color = method), geom="line", fun.y = mean) +
-stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_se, alpha = 0.5) + 
-facet_wrap(~variable, ncol = 1, scales = "free_y")
+  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.1) +
+  stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
+  stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
+  facet_wrap(~variable, ncol = 1, scales = "free_y")
 
 ```
 
