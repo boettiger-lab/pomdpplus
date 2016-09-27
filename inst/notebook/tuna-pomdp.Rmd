@@ -62,84 +62,95 @@ ricker_fit$par
 
 (Code to create the logged alpha vectors; cached & not evaluated, very slow)
 
-```{r eval=FALSE}
+```{r }
+mc.cores = 1
 log_dir = "."
-
-## Parameters from nimble's maximum likelihood estimate
+p <- 2
+states <- seq(0, 1.2^(1/p), len=150)^p # Vector of all possible states
+actions <- states  # Vector of actions: harvest
+obs <- states
 K = 0.9903371
 r = 0.05699246
 sigma_g = 0.01720091
+discount = 0.99
 
-states <- seq(0,1.2, length=100) # Vector of all possible states
-actions <- seq(0,.8, length=100)   # Vector of actions: harvest
-obs <- states
-reward_fn <- function(x,h) pmin(x,h)
-
-## Create a data frame of all parameter combinations to be run, along with fixed parameters
-vars <- expand.grid(r = seq(0.05, 0.3, by =0.05), sigma_m = c(0.1, 0.3, 0.6))
-fixed <- data.frame(model = "ricker", sigma_g = sigma_g, discount = 0.99, 
-                    precision = 0.0000001, K = K, C = NA,  max_state = max(states),
-                    max_obs = max(obs), max_action = max(actions), min_state = min(states),
-                    min_obs = min(obs), min_action = min(actions))
-models <- data.frame(vars, fixed)
+#vars <- expand.grid(r = rev(seq(0.025, 0.2, by =0.025)), sigma_m = c(0.2, 0.4, 0.6))
+vars <- expand.grid(r = seq(0.025, 0.2, by =0.025), sigma_m = 0.4)
 
 
 ## Detect available memory (linux servers only)
-memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])) / 1000)
-
+memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])))
+## Bind this to a data.frame listing each of the fixed parameters across all runs
+fixed <- data.frame( K = K, C = NA, sigma_g = sigma_g, discount = discount, model = "ricker", 
+                     precision = 0.0000001, memory = memory / mc.cores, timeout = 20000, timeInterval = 100,
+                     max_state = max(states), max_obs = max(obs), max_action = max(actions), 
+                     min_state = min(states), min_obs = min(obs), min_action = min(actions),
+                     states_code = "seq(0, 1.2^(1/p), len=100)^p")
+pars <- data.frame(vars, fixed)
+## Usual assumption at the moment for reward fn
+reward_fn <- function(x,h) pmin(x,h)
 ## Compute alphas for the above examples
-for(i in 1:dim(models)[1]) {
-## Select the model
-  f <- switch(models[i, "model"], 
-    allen = appl:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
-    ricker = appl:::ricker(models[i, "r"], models[i, "K"])
+models <- lapply(1:dim(pars)[1], function(i){
+  ## Select the model
+  f <- switch(pars[i, "model"], 
+              allen = appl:::allen(pars[i, "r"], pars[i, "K"], pars[i, "C"]),
+              ricker = appl:::ricker(pars[i, "r"], pars[i, "K"])
   )
-## Determine the matrices
-  m <- appl::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
-                          sigma_g = models[i, "sigma_g"], sigma_m  = models[i, "sigma_m"])
-## record data for the log
-  log_data <- data.frame(model = models[i, "model"], r = models[i, "r"], K  = models[i, "K"], 
-                         C = models[i, "C"], sigma_g = models[i, "sigma_g"], sigma_m = models[i, "sigma_m"],
-                         memory = memory)
-## run sarsop
-  alpha <- appl::sarsop(m$transition, m$observation, m$reward, 
-                        discount = models[i, "discount"], 
-                        precision = models[i, "precision"], memory = memory,
-                        log_dir = log_dir, log_data = log_data)
+  ## Compute matrices
+  fisheries_matrices(states, actions, obs, 
+                     reward_fn, f = f, 
+                     sigma_g = pars[i, "sigma_g"], 
+                     sigma_m  = pars[i, "sigma_m"])
+})
 
-}
 
+
+```
+
+```{r eval=FALSE}
+alphas <- sarsop_plus(models, 
+                      discount = pars[1, "discount"], 
+                      precision = pars[1, "precision"], 
+                      timeout = pars[1, "timeout"],
+                      timeInterval = pars[1, "timeInterval"],
+                      log_dir = log_dir, 
+                      log_data = pars,
+                      mc.cores = mc.cores)
 ```
 
 Identify available solutions in the log that match the desired parameters
 
 ```{r}
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tacc-44"
+meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.4), log_dir)
 
-## 100 states, 30 GB solution
-meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 100, sigma_m = 0.3), log_dir)
-meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
-meta <- meta %>% filter(date > as.Date("2016-09-10"))
+
 
 ## 50 states, 60 GB solution
 #meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 50, sigma_m = 0.3), log_dir)
 #meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
-
-knitr::kable(meta)
+meta
+#knitr::kable(meta)
 ```
 
 Read in the POMDP problem specification from the log
 
 ```{r}
-setup <- meta[1,]
-states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
-actions <- seq(0, setup$max_action, length=setup$n_actions)   # Vector of actions: harvest
-obs <- states
-sigma_g <- setup$sigma_g
-sigma_m <- setup$sigma_m
-reward_fn <- function(x,h) pmin(x,h)
-discount <- setup$discount 
-models <- models_from_log(meta, reward_fn)
+## Not read from log in this case, since only applies for uniform grids 
+#setup <- meta[1,]
+#p <- 2
+#states <- seq(0, 1.2^(1/p), len=setup$n_states)^p #
+#states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+#actions <- states
+#obs <- states
+#sigma_g <- setup$sigma_g
+#sigma_m <- setup$sigma_m
+#reward_fn <- function(x,h) pmin(x,h)
+#discount <- setup$discount 
+# models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+```
+
+```{r}
 alphas <- alphas_from_log(meta, log_dir)
 ```
 
@@ -156,7 +167,6 @@ observation <- models[[1]]$observation
 
 # Verfication & Validation
 
-## Examine the policies from POMDP/PLUS solutions
 
 Compute the deterministic optimum solution:
 
@@ -169,13 +179,40 @@ det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
 ```
 
 
+## Examine MDP
+
+
+```{r}
+unif <- mdp_compute_policy(transitions, reward, discount)
+prior <- numeric(length(models))
+prior[1] <- 1
+low <- mdp_compute_policy(transitions, reward, discount, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <- mdp_compute_policy(transitions, reward, discount, prior)
+
+bind_rows(unif = unif, low = low, true = true, det = det, .id = "model") %>%
+  ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line()
+```
+
+
+## Examine the policies from POMDP/PLUS solutions
+
+
 Compare a uniform prior to individial cases:
 
 ```{r}
-low <-  compute_plus_policy(alphas, models, c(1,0,0,0,0,0))
+prior <- numeric(length(models))
+prior[1] <- 1
+low <-  compute_plus_policy(alphas, models, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <-  compute_plus_policy(alphas, models, prior)
 unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
-high <-  compute_plus_policy(alphas, models, c(0, 0, 0, 0, 0, 1))
-df <- dplyr::bind_rows(low = low, unif = unif, high = high, det = det, .id = "prior")
+prior <- numeric(length(models))
+prior[length(prior)] <- 1
+high <-  compute_plus_policy(alphas, models, prior)
+df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = det, .id = "prior")
 
 ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
@@ -189,7 +226,9 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 
 # Analysis
 
-## Hindcast: Historical catch and stock
+## Hindcast 
+
+Historical catch and stock
 
 ```{r}
 set.seed(123)
@@ -207,22 +246,14 @@ future <- 2009:2067
 ```
 
 
-### Compute PLUS optimum vs historical data:
-
-
 ```{r}
 plus_hindcast <- compare_plus(models = models, discount = discount,
                     obs = y, action = a, alphas = alphas)
 ```
 
-### Compare MDP optimum vs historical data: 
-
 ```{r}
 mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
 ```
-
-
-### Merge and plot resulting optimal solutions
 
 ```{r}
 left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
@@ -239,7 +270,7 @@ ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
 ```{r}
 # delta function for true model distribution
 h_star = array(0,dim = length(models)) 
-h_star[1] = 1
+h_star[2] = 1
 ## Fn for the base-2 KL divergence from true model, in a friendly format
 kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 
@@ -263,7 +294,6 @@ Show the final belief over models for pomdp and mdp:
 barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
 ```
 
-
 ```{r}
 barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 ```
@@ -275,11 +305,7 @@ barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 All forecasts start from final stock, go forward an equal length of time:
 
 ```{r}
-#x0 <- which.min(abs(1 - states)) # Initial stock, for hindcasts
-#x0 <- y[length(y)] # Final stock, e.g. forcasts, = 9
-
-## too low a final value causes MDP to crash too soon
-x0 <- 12
+x0 <- y[length(y)] # Final stock, 
 Tmax <- length(y)
 set.seed(123)
 ```
@@ -328,7 +354,7 @@ bind_rows(historical) %>%
 rename("catch (MT)" = action, "stock (MT)" = state) %>%  
 gather(variable, stock, -time, -rep, -method) %>%
 ggplot(aes(time, stock)) + 
-  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.1) +
+  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
   facet_wrap(~variable, ncol = 1, scales = "free_y")

@@ -60,96 +60,146 @@ ricker_fit$par
 
 
 ```r
+mc.cores = 1
 log_dir = "."
-
-## Parameters from nimble's maximum likelihood estimate
+p <- 2
+states <- seq(0, 1.2^(1/p), len=150)^p # Vector of all possible states
+actions <- states  # Vector of actions: harvest
+obs <- states
 K = 0.9903371
 r = 0.05699246
 sigma_g = 0.01720091
+discount = 0.99
 
-states <- seq(0,1.2, length=100) # Vector of all possible states
-actions <- seq(0,.8, length=100)   # Vector of actions: harvest
-obs <- states
-reward_fn <- function(x,h) pmin(x,h)
-
-## Create a data frame of all parameter combinations to be run, along with fixed parameters
-vars <- expand.grid(r = seq(0.05, 0.3, by =0.05), sigma_m = c(0.1, 0.3, 0.6))
-fixed <- data.frame(model = "ricker", sigma_g = sigma_g, discount = 0.99, 
-                    precision = 0.0000001, K = K, C = NA,  max_state = max(states),
-                    max_obs = max(obs), max_action = max(actions), min_state = min(states),
-                    min_obs = min(obs), min_action = min(actions))
-models <- data.frame(vars, fixed)
+#vars <- expand.grid(r = rev(seq(0.025, 0.2, by =0.025)), sigma_m = c(0.2, 0.4, 0.6))
+vars <- expand.grid(r = seq(0.025, 0.2, by =0.025), sigma_m = 0.4)
 
 
 ## Detect available memory (linux servers only)
-memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])) / 1000)
-
+memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])))
+## Bind this to a data.frame listing each of the fixed parameters across all runs
+fixed <- data.frame( K = K, C = NA, sigma_g = sigma_g, discount = discount, model = "ricker", 
+                     precision = 0.0000001, memory = memory / mc.cores, timeout = 20000, timeInterval = 100,
+                     max_state = max(states), max_obs = max(obs), max_action = max(actions), 
+                     min_state = min(states), min_obs = min(obs), min_action = min(actions),
+                     states_code = "seq(0, 1.2^(1/p), len=100)^p")
+pars <- data.frame(vars, fixed)
+## Usual assumption at the moment for reward fn
+reward_fn <- function(x,h) pmin(x,h)
 ## Compute alphas for the above examples
-for(i in 1:dim(models)[1]) {
-## Select the model
-  f <- switch(models[i, "model"], 
-    allen = appl:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
-    ricker = appl:::ricker(models[i, "r"], models[i, "K"])
+models <- lapply(1:dim(pars)[1], function(i){
+  ## Select the model
+  f <- switch(pars[i, "model"], 
+              allen = appl:::allen(pars[i, "r"], pars[i, "K"], pars[i, "C"]),
+              ricker = appl:::ricker(pars[i, "r"], pars[i, "K"])
   )
-## Determine the matrices
-  m <- appl::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
-                          sigma_g = models[i, "sigma_g"], sigma_m  = models[i, "sigma_m"])
-## record data for the log
-  log_data <- data.frame(model = models[i, "model"], r = models[i, "r"], K  = models[i, "K"], 
-                         C = models[i, "C"], sigma_g = models[i, "sigma_g"], sigma_m = models[i, "sigma_m"],
-                         memory = memory)
-## run sarsop
-  alpha <- appl::sarsop(m$transition, m$observation, m$reward, 
-                        discount = models[i, "discount"], 
-                        precision = models[i, "precision"], memory = memory,
-                        log_dir = log_dir, log_data = log_data)
+  ## Compute matrices
+  fisheries_matrices(states, actions, obs, 
+                     reward_fn, f = f, 
+                     sigma_g = pars[i, "sigma_g"], 
+                     sigma_m  = pars[i, "sigma_m"])
+})
+```
 
-}
+
+```r
+alphas <- sarsop_plus(models, 
+                      discount = pars[1, "discount"], 
+                      precision = pars[1, "precision"], 
+                      timeout = pars[1, "timeout"],
+                      timeInterval = pars[1, "timeInterval"],
+                      log_dir = log_dir, 
+                      log_data = pars,
+                      mc.cores = mc.cores)
 ```
 
 Identify available solutions in the log that match the desired parameters
 
 
 ```r
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tacc-44"
+meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.4), log_dir)
 
-## 100 states, 30 GB solution
-meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 100, sigma_m = 0.3), log_dir)
-meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
-meta <- meta %>% filter(date > as.Date("2016-09-10"))
+
 
 ## 50 states, 60 GB solution
 #meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 50, sigma_m = 0.3), log_dir)
 #meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
-
-knitr::kable(meta)
+meta
 ```
 
-
 ```
-id                                      load_time_sec   init_time_sec   run_time_sec   final_precision  end_condition    n_states   n_obs   n_actions   discount  date                  model        r           K    C     sigma_g   sigma_m   memory   max_state   max_obs   max_action
--------------------------------------  --------------  --------------  -------------  ----------------  --------------  ---------  ------  ----------  ---------  --------------------  -------  -----  ----------  ---  ----------  --------  -------  ----------  --------  -----------
-a333a384-063c-4b4b-a4e6-5589cce2d562             3.52            7.41         663.76         0.0195426  NA                    100     100         100       0.99  2016-09-11 08:13:32   ricker    0.05   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
-917bf4bc-7388-4d17-b7d1-d1a8d10c5cf2             3.54           19.58         336.82         0.0487519  NA                    100     100         100       0.99  2016-09-11 08:27:08   ricker    0.10   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
-09dcf263-47fb-46e4-bf80-6297282ead37             3.52           16.32         346.14         0.0967042  NA                    100     100         100       0.99  2016-09-11 08:40:45   ricker    0.15   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
-d05f31ac-3af0-4871-a26f-420c96cabbc9             3.54           55.88         427.31         0.1281140  NA                    100     100         100       0.99  2016-09-11 08:55:29   ricker    0.20   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
-bb9345fd-0568-430d-93d2-44c969178da0             3.54           93.76         486.32         0.1613310  NA                    100     100         100       0.99  2016-09-11 09:11:16   ricker    0.25   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
-6987a356-484d-4b02-839d-e3bcd613ac33             3.59          118.60         508.64         0.2531460  NA                    100     100         100       0.99  2016-09-11 09:27:33   ricker    0.30   0.9903371   NA   0.0172009       0.3    29340         1.2       1.2          0.8
+##                                      id load_time_sec init_time_sec
+## 9  16aaa8ae-cf31-403d-96c7-761d9a08355a         14.88       4939.78
+## 10 60240bd0-65f2-4f39-a999-52a9cec198ec         15.10       5032.40
+## 11 5ba2dae4-e8bc-47b9-82c5-29a0c171189e         15.14       4592.73
+## 12 d15e1bb8-8567-4aad-8284-b2cdf76f2c97         13.89       4716.04
+## 13 32703956-328f-479a-b48f-4963a9907ff4         14.37       4255.42
+## 14 e4426242-c55a-4ff3-a74c-9ed37c8710e6         15.56       3969.21
+## 15 36c4535c-ade5-493b-806d-27bb07c0a4d8         15.35       3168.10
+## 16 cf5738ca-7d8b-4e38-a6e3-0252f882c73b         14.80       3806.00
+##    run_time_sec final_precision            end_condition n_states n_obs
+## 9       20531.5       0.1052120   Preset timeout reached      150   150
+## 10      20250.6       0.0919504   Preset timeout reached      150   150
+## 11      20375.0       0.0602637   Preset timeout reached      150   150
+## 12      21401.2       0.0746996   Preset timeout reached      150   150
+## 13      20393.5       0.0447117   Preset timeout reached      150   150
+## 14      20276.2       0.0328067   Preset timeout reached      150   150
+## 15      20136.7       0.0102382   Preset timeout reached      150   150
+## 16      20594.6       0.0199770   Preset timeout reached      150   150
+##    n_actions discount                date     r sigma_m         K  C
+## 9        150     0.99 2016-09-24 14:28:16 0.200     0.4 0.9903371 NA
+## 10       150     0.99 2016-09-24 14:39:08 0.175     0.4 0.9903371 NA
+## 11       150     0.99 2016-09-24 14:46:25 0.125     0.4 0.9903371 NA
+## 12       150     0.99 2016-09-24 14:46:59 0.150     0.4 0.9903371 NA
+## 13       150     0.99 2016-09-24 21:08:02 0.100     0.4 0.9903371 NA
+## 14       150     0.99 2016-09-24 21:16:10 0.075     0.4 0.9903371 NA
+## 15       150     0.99 2016-09-24 21:16:51 0.025     0.4 0.9903371 NA
+## 16       150     0.99 2016-09-24 21:29:17 0.050     0.4 0.9903371 NA
+##       sigma_g discount.1  model precision  memory timeout timeInterval
+## 9  0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 10 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 11 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 12 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 13 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 14 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 15 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+## 16 0.01720091       0.99 ricker     1e-07 9799086   20000          100
+##    max_state max_obs max_action min_state min_obs min_action
+## 9        1.2     1.2        1.2         0       0          0
+## 10       1.2     1.2        1.2         0       0          0
+## 11       1.2     1.2        1.2         0       0          0
+## 12       1.2     1.2        1.2         0       0          0
+## 13       1.2     1.2        1.2         0       0          0
+## 14       1.2     1.2        1.2         0       0          0
+## 15       1.2     1.2        1.2         0       0          0
+## 16       1.2     1.2        1.2         0       0          0
+```
+
+```r
+#knitr::kable(meta)
 ```
 
 Read in the POMDP problem specification from the log
 
 
 ```r
-setup <- meta[1,]
-states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
-actions <- seq(0, setup$max_action, length=setup$n_actions)   # Vector of actions: harvest
-obs <- states
-sigma_g <- setup$sigma_g
-sigma_m <- setup$sigma_m
-reward_fn <- function(x,h) pmin(x,h)
-discount <- setup$discount 
-models <- models_from_log(meta, reward_fn)
+## Not read from log in this case, since only applies for uniform grids 
+#setup <- meta[1,]
+#p <- 2
+#states <- seq(0, 1.2^(1/p), len=setup$n_states)^p #
+#states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+#actions <- states
+#obs <- states
+#sigma_g <- setup$sigma_g
+#sigma_m <- setup$sigma_m
+#reward_fn <- function(x,h) pmin(x,h)
+#discount <- setup$discount 
+# models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+```
+
+
+```r
 alphas <- alphas_from_log(meta, log_dir)
 ```
 
@@ -167,7 +217,6 @@ observation <- models[[1]]$observation
 
 # Verfication & Validation
 
-## Examine the policies from POMDP/PLUS solutions
 
 Compute the deterministic optimum solution:
 
@@ -181,21 +230,51 @@ det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
 ```
 
 
+## Examine MDP
+
+
+
+```r
+unif <- mdp_compute_policy(transitions, reward, discount)
+prior <- numeric(length(models))
+prior[1] <- 1
+low <- mdp_compute_policy(transitions, reward, discount, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <- mdp_compute_policy(transitions, reward, discount, prior)
+
+bind_rows(unif = unif, low = low, true = true, det = det, .id = "model") %>%
+  ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line()
+```
+
+![](tuna-pomdp_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+
+## Examine the policies from POMDP/PLUS solutions
+
+
 Compare a uniform prior to individial cases:
 
 
 ```r
-low <-  compute_plus_policy(alphas, models, c(1,0,0,0,0,0))
+prior <- numeric(length(models))
+prior[1] <- 1
+low <-  compute_plus_policy(alphas, models, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <-  compute_plus_policy(alphas, models, prior)
 unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
-high <-  compute_plus_policy(alphas, models, c(0, 0, 0, 0, 0, 1))
-df <- dplyr::bind_rows(low = low, unif = unif, high = high, det = det, .id = "prior")
+prior <- numeric(length(models))
+prior[length(prior)] <- 1
+high <-  compute_plus_policy(alphas, models, prior)
+df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = det, .id = "prior")
 
 ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
   geom_point(alpha = 0.5, size = 3) + 
   geom_line()
 ```
 
-![](tuna-pomdp_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](tuna-pomdp_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 
 
@@ -203,7 +282,9 @@ ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch 
 
 # Analysis
 
-## Hindcast: Historical catch and stock
+## Hindcast 
+
+Historical catch and stock
 
 
 ```r
@@ -214,13 +295,6 @@ a <- sapply(scaled_data$a, function(a) which.min(abs(actions - a)))
 Tmax <- length(y)
 
 data("bluefin_tuna")
-```
-
-```
-## Warning in data("bluefin_tuna"): data set 'bluefin_tuna' not found
-```
-
-```r
 to_mt <- max(bluefin_tuna$total) # 1178363 # scaling factor for data
 states_mt <- to_mt * states
 actions_mt <- to_mt * actions
@@ -229,24 +303,16 @@ future <- 2009:2067
 ```
 
 
-### Compute PLUS optimum vs historical data:
-
-
 
 ```r
 plus_hindcast <- compare_plus(models = models, discount = discount,
                     obs = y, action = a, alphas = alphas)
 ```
 
-### Compare MDP optimum vs historical data: 
-
 
 ```r
 mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
 ```
-
-
-### Merge and plot resulting optimal solutions
 
 
 ```r
@@ -260,10 +326,15 @@ ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
 ```
 
 ```
+## Warning: failed to assign NativeSymbolInfo for env since env is already
+## defined in the 'lazyeval' namespace
+```
+
+```
 ## Warning: Removed 2 rows containing missing values (geom_path).
 ```
 
-![](tuna-pomdp_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](tuna-pomdp_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 ## Compare rates of learning
 
@@ -271,7 +342,7 @@ ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
 ```r
 # delta function for true model distribution
 h_star = array(0,dim = length(models)) 
-h_star[1] = 1
+h_star[2] = 1
 ## Fn for the base-2 KL divergence from true model, in a friendly format
 kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 
@@ -287,11 +358,7 @@ ggplot(aes(time, kl, col = method)) +
 stat_summary(geom="line", fun.y = mean, lwd = 1)
 ```
 
-```
-## Warning: Removed 2 rows containing non-finite values (stat_summary).
-```
-
-![](tuna-pomdp_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](tuna-pomdp_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 ### Final beliefs
 
@@ -302,15 +369,14 @@ Show the final belief over models for pomdp and mdp:
 barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
 ```
 
-![](tuna-pomdp_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
-
+![](tuna-pomdp_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 
 ```r
 barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 ```
 
-![](tuna-pomdp_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](tuna-pomdp_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 
 
@@ -320,11 +386,7 @@ All forecasts start from final stock, go forward an equal length of time:
 
 
 ```r
-#x0 <- which.min(abs(1 - states)) # Initial stock, for hindcasts
-#x0 <- y[length(y)] # Final stock, e.g. forcasts, = 9
-
-## too low a final value causes MDP to crash too soon
-x0 <- 12
+x0 <- y[length(y)] # Final stock, 
 Tmax <- length(y)
 set.seed(123)
 ```
@@ -381,12 +443,12 @@ bind_rows(historical) %>%
 rename("catch (MT)" = action, "stock (MT)" = state) %>%  
 gather(variable, stock, -time, -rep, -method) %>%
 ggplot(aes(time, stock)) + 
-  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.1) +
+  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
   facet_wrap(~variable, ncol = 1, scales = "free_y")
 ```
 
-![](tuna-pomdp_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](tuna-pomdp_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
 
 
