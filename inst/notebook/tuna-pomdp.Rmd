@@ -19,7 +19,7 @@ library("dplyr")
 
 library("seewave") ## For KL divergence only
 
-knitr::opts_chunk$set(cache = TRUE, message=FALSE)
+knitr::opts_chunk$set(cache = FALSE, message=FALSE)
 theme_set(theme_bw())
 ```
 
@@ -27,7 +27,7 @@ theme_set(theme_bw())
 
 
 
-```{r eval=FALSE}
+```{r}
 library("nimble")
 data("scaled_data")
 ricker_code <- nimbleCode({
@@ -63,10 +63,10 @@ ricker_fit$par
 (Code to create the logged alpha vectors; cached & not evaluated, very slow)
 
 ```{r }
-mc.cores = 1
-log_dir = "."
-p <- 2
-states <- seq(0, 1.2^(1/p), len=150)^p # Vector of all possible states
+mc.cores <- round(parallel::detectCores() / 2)
+
+log_dir <- "tuna"
+states <- seq(0, 1.2, len=150) # Vector of all possible states
 actions <- states  # Vector of actions: harvest
 obs <- states
 K = 0.9903371
@@ -74,25 +74,24 @@ r = 0.05699246
 sigma_g = 0.01720091
 discount = 0.99
 
-#vars <- expand.grid(r = rev(seq(0.025, 0.2, by =0.025)), sigma_m = c(0.2, 0.4, 0.6))
-vars <- expand.grid(r = seq(0.025, 0.2, by =0.025), sigma_m = 0.4)
+vars <- expand.grid(r = rev(seq(0.025, 0.2, by =0.025)), sigma_m = c(0.1, 0.2, 0.3, 0.4, 0.5))
 
+# At 150 length, initialization time ~ 100,000 seconds, exceeds runtime
 
 ## Detect available memory (linux servers only)
 memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])))
 ## Bind this to a data.frame listing each of the fixed parameters across all runs
 fixed <- data.frame( K = K, C = NA, sigma_g = sigma_g, discount = discount, model = "ricker", 
-                     precision = 0.0000001, memory = memory / mc.cores, timeout = 20000, timeInterval = 100,
+                     precision = 0.0000001, memory = memory / mc.cores, timeout = 250000, timeInterval = 10000,
                      max_state = max(states), max_obs = max(obs), max_action = max(actions), 
-                     min_state = min(states), min_obs = min(obs), min_action = min(actions),
-                     states_code = "seq(0, 1.2^(1/p), len=100)^p")
+                     min_state = min(states), min_obs = min(obs), min_action = min(actions))
 pars <- data.frame(vars, fixed)
 ## Usual assumption at the moment for reward fn
 reward_fn <- function(x,h) pmin(x,h)
 ## Compute alphas for the above examples
 models <- lapply(1:dim(pars)[1], function(i){
   ## Select the model
-  f <- switch(pars[i, "model"], 
+  f <- switch(as.character(pars[i, "model"]), 
               allen = appl:::allen(pars[i, "r"], pars[i, "K"], pars[i, "C"]),
               ricker = appl:::ricker(pars[i, "r"], pars[i, "K"])
   )
@@ -107,7 +106,8 @@ models <- lapply(1:dim(pars)[1], function(i){
 
 ```
 
-```{r eval=FALSE}
+```{r}
+
 alphas <- sarsop_plus(models, 
                       discount = pars[1, "discount"], 
                       precision = pars[1, "precision"], 
@@ -121,33 +121,24 @@ alphas <- sarsop_plus(models,
 Identify available solutions in the log that match the desired parameters
 
 ```{r}
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tacc-44"
-meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.4), log_dir)
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna"
+meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.4), log_dir) %>% arrange(r)
 
-
-
-## 50 states, 60 GB solution
-#meta <- appl::meta_from_log(data.frame(model ="ricker", n_states = 50, sigma_m = 0.3), log_dir)
-#meta <- data.frame(meta, max_state = 1.2, max_obs = 1.2, max_action = 0.8)
 meta
-#knitr::kable(meta)
 ```
 
 Read in the POMDP problem specification from the log
 
 ```{r}
-## Not read from log in this case, since only applies for uniform grids 
-#setup <- meta[1,]
-#p <- 2
-#states <- seq(0, 1.2^(1/p), len=setup$n_states)^p #
-#states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
-#actions <- states
-#obs <- states
-#sigma_g <- setup$sigma_g
-#sigma_m <- setup$sigma_m
-#reward_fn <- function(x,h) pmin(x,h)
-#discount <- setup$discount 
-# models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+setup <- meta[1,]
+states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+actions <- states
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
 ```
 
 ```{r}
@@ -177,6 +168,32 @@ h <- pmax(states - S_star,  0)
 policy <- sapply(h, function(h) which.min((abs(h - actions))))
 det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
 ```
+
+
+
+## Convergence testing
+
+```{r}
+# log dir must be local
+log_dir = "tuna/"
+inter <- appl:::intermediates_from_log(meta, log_dir = log_dir)
+
+df1 <- 
+purrr::map_df(1:length(models), function(j){
+  alphas <- inter[[j]]
+  m <- models[[j]]
+  purrr::map_df(1:length(alphas), function(i)
+    compute_policy(alphas[[i]], m$transition, m$observation, m$reward),
+    .id = "intermediate") 
+}, .id = "model_id")
+
+df1 %>% 
+  ggplot(aes(states[state], states[state] - actions[policy], col=intermediate)) + 
+  geom_line() + 
+  facet_wrap(~model_id, scales = "free") + 
+  coord_cartesian(ylim = c(0,0.5))
+```
+
 
 
 ## Examine MDP
@@ -215,7 +232,7 @@ high <-  compute_plus_policy(alphas, models, prior)
 df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = det, .id = "prior")
 
 ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
-  geom_point(alpha = 0.5, size = 3) + 
+#  geom_point(alpha = 0.5, size = 3) + 
   geom_line()
 
 ```
@@ -314,7 +331,7 @@ Note also that forecasts start with the prior belief over states and prior belie
 
 ```{r}
 plus_forecast <- 
-plus_replicate(50, 
+plus_replicate(40, 
                sim_plus(models = models, discount = discount,
                         model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
                         state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
@@ -329,7 +346,7 @@ We simulate replicates under MDP learning (with observation uncertainty):
 ```{r}
 set.seed(123)
 mdp_forecast <- 
-plus_replicate(50, 
+plus_replicate(40, 
                mdp_learning(transition = transitions, reward = models[[1]]$reward, 
                             model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
                             discount = discount, x0 = x0,  Tmax = Tmax,
@@ -354,7 +371,7 @@ bind_rows(historical) %>%
 rename("catch (MT)" = action, "stock (MT)" = state) %>%  
 gather(variable, stock, -time, -rep, -method) %>%
 ggplot(aes(time, stock)) + 
-  #geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
+  geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
   facet_wrap(~variable, ncol = 1, scales = "free_y")
