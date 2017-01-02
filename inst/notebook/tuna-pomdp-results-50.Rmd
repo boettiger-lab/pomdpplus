@@ -111,21 +111,23 @@ compare_mdp_by_prior <- function(m){
 ```{r}
 mdp_policies <- function(x) x %>% arrange(r) %>% load_model(log_dir) %>% include_det() %>% compare_mdp_by_prior()
 meta %>% group_by(sigma_m) %>% do(mdp_policies(.)) -> df
-```
-
-
-```{r}
+## equivalently, more typesafe
+##meta %>% split(.$sigma_m) %>% map_df(mdp_policies, .id = "sigma_m") -> df
 df %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line() + facet_wrap(~sigma_m)
 ```
 
-```{r}
-## equivalently, more typesafe
-meta %>% split(.$sigma_m) %>% map_df(mdp_policies, .id = "sigma_m") -> f1
-```
+
+
 
 
 ```{r}
-f1 %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line() + facet_wrap(~sigma_m)
+# Avoid repeating creation of scenarios. sigma_m levels become names of list, s
+get_models <- function(x) x %>% arrange(r) %>% load_model(log_dir) %>% include_det()
+meta %>% split(.$sigma_m) %>% map(get_models) -> s
+
+## Now we can do mdp results: 
+s %>% map_df(compare_mdp_by_prior, .id = "sigma_m") -> df
+df %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line() + facet_wrap(~sigma_m)
 ```
 
 
