@@ -12,7 +12,6 @@ library("mdplearning")
 library("appl")
 library("pomdpplus")
 library("tidyverse")
-
 library("seewave") ## For KL divergence only
 
 knitr::opts_chunk$set(cache = TRUE, message=FALSE)
@@ -37,6 +36,9 @@ obs <- states
 sigma_g <- setup$sigma_g
 discount <- setup$discount
 
+n_models <- length(unique(meta$r))
+true_i <- 2
+
 
 
 load_model <- function(meta, log_dir){
@@ -47,13 +49,6 @@ models <- models_from_log(meta, reward_fn)
 
 list(
   meta = meta,
-  states = states,
-  actions = states,
-  obs = states,
-  sigma_g = setup$sigma_g,
-  sigma_m = setup$sigma_m,
-  reward_fn = reward_fn,
-  discount = setup$discount,
   models = models,
   alphas = alphas_from_log(meta, log_dir),
   ## reformat model solutions for use by the MDP functions as well:
@@ -68,10 +63,10 @@ list(
 
 include_det <- function(m){
   f <- f_from_log(m$meta)[[1]]
-  S_star <- optimize(function(x) x / m$discount - f(x,0), c(min(m$states),max(m$states)))$minimum
-  h <- pmax(m$states - S_star,  0)
-  policy <- sapply(h, function(h) which.min((abs(h - m$actions))))
-  m$det <- data.frame(policy, value = 1:length(m$states), state = 1:length(m$states))
+  S_star <- optimize(function(x) x / discount - f(x,0), c(min(states),max(states)))$minimum
+  h <- pmax(states - S_star,  0)
+  policy <- sapply(h, function(h) which.min((abs(h - actions))))
+  m$det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
   m
 }
 
@@ -90,44 +85,37 @@ include_det <- function(m){
 
 compare_mdp_by_prior <- function(m){
   
-  unif <- mdp_compute_policy(m$transitions, m$reward, m$discount)
+  unif <- mdp_compute_policy(m$transitions, m$reward, discount)
   ## delta fn at 1st value
-  prior <- numeric(length(m$models))
+  prior <- numeric(n_models)
   prior[1] <- 1
-  low <- mdp_compute_policy(m$transitions, m$reward, m$discount, prior)
+  low <- mdp_compute_policy(m$transitions, m$reward, discount, prior)
   # delta fn at true value (2nd r)
-  prior <- numeric(length(m$models))
+  prior <- numeric(n_models)
   prior[2] <- 1
-  true <- mdp_compute_policy(m$transitions, m$reward, m$discount, prior)
+  true <- mdp_compute_policy(m$transitions, m$reward, discount, prior)
 
-  bind_rows(unif = unif, low = low, true = true, det = m$det, .id = "model") 
+  bind_rows(unif = unif, low = low, true = true, det = m$det, .id = "prior") 
 }
 ```
-
-
-## MDP policies
-
-
-```{r}
-mdp_policies <- function(x) x %>% arrange(r) %>% load_model(log_dir) %>% include_det() %>% compare_mdp_by_prior()
-meta %>% group_by(sigma_m) %>% do(mdp_policies(.)) -> df
-## equivalently, more typesafe
-##meta %>% split(.$sigma_m) %>% map_df(mdp_policies, .id = "sigma_m") -> df
-df %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line() + facet_wrap(~sigma_m)
-```
-
-
 
 
 
 ```{r}
 # Avoid repeating creation of scenarios. sigma_m levels become names of list, s
 get_models <- function(x) x %>% arrange(r) %>% load_model(log_dir) %>% include_det()
-meta %>% split(.$sigma_m) %>% map(get_models) -> s
+meta %>% split(.$sigma_m) %>% map(get_models) -> m
+```
 
+
+## MDP policies
+
+(MDP policies do not vary with `sigma_m`)
+
+```{r}
 ## Now we can do mdp results: 
-s %>% map_df(compare_mdp_by_prior, .id = "sigma_m") -> df
-df %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line() + facet_wrap(~sigma_m)
+m[[1]] %>% compare_mdp_by_prior %>%
+ggplot(aes(states[state], states[state] - actions[policy], col = prior)) + geom_line() 
 ```
 
 
@@ -138,24 +126,28 @@ df %>% ggplot(aes(states[state], states[state] - actions[policy], col = model)) 
 Compare a uniform prior to individial cases:
 
 ```{r}
-prior <- numeric(length(models))
-prior[1] <- 1
-low <-  compute_plus_policy(alphas, models, prior)
-prior <- numeric(length(models))
-prior[2] <- 1
-true <-  compute_plus_policy(alphas, models, prior)
-unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
-prior <- numeric(length(models))
-prior[length(prior)] <- 1
-high <-  compute_plus_policy(alphas, models, prior)
-df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = det, .id = "prior")
-
-ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
-#  geom_point(alpha = 0.5, size = 3) + 
-  geom_line()
-
+compare_pomdp_by_prior <- function(m){
+  prior <- numeric(n_models)
+  prior[1] <- 1
+  low <-  compute_plus_policy(m$alphas, m$models, prior)
+  prior <- numeric(n_models)
+  prior[2] <- 1
+  true <-  compute_plus_policy(m$alphas, m$models, prior)
+  unif <- compute_plus_policy(m$alphas, m$models) # e.g. 'planning only'
+  prior <- numeric(n_models)
+  prior[length(prior)] <- 1
+  high <-  compute_plus_policy(m$alphas, m$models, prior)
+  df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = m$det, .id = "prior")
+}
 ```
 
+
+
+```{r}
+## Now we can do mdp results: 
+m %>% map_df(compare_pomdp_by_prior, .id = "sigma_m") -> df
+df %>% ggplot(aes(states[state], states[state] - actions[policy], col = prior)) + geom_line() + facet_wrap(~sigma_m)
+```
 
 
 ------------
@@ -183,43 +175,60 @@ future <- 2009:2067
 
 
 ```{r}
-plus_hindcast <- compare_plus(models = models, discount = discount,
-                    obs = y, action = a, alphas = alphas)
-```
 
-```{r}
-mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
-```
+hindcasts <- function(m){
 
-```{r}
-left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
-          rename(mdp_hindcast$df, mdp = optimal)) %>%
-mutate("actual catch" = actions_mt[action], "estimated stock" = states_mt[state], 
-       plus = actions_mt[plus], mdp = actions_mt[mdp], time = year[time]) %>%
+list(plus_hindcast = compare_plus(models = m$models, discount = m$discount,
+                              obs = y, action = a, alphas = m$alphas),
+     mdp_hindcast = mdp_historical(m$transitions, m$reward, m$discount, state = y, action = a))
+
+}
+
+
+hindcast_policies <- function(m){
+left_join(rename(m$plus_hindcast$df, plus = optimal, state = obs),  
+          rename(m$mdp_hindcast$df, mdp = optimal)) %>%
+mutate("actual catch" = actions_mt[action], 
+       "estimated stock" = states_mt[state], 
+       plus = actions_mt[plus], 
+       mdp = actions_mt[mdp], 
+       time = year[time]) %>%
        select(-state, -action) %>%
-gather(variable, stock, -time) %>% 
-ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
+gather(variable, stock, -time) 
+}
+```
+
+```{r}
+m %>% map(hindcasts) -> s_hindcasts
+
+s_hindcasts %>% map_df(hindcast_policies, .id = "sigma_m") -> df
+df %>% ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) + facet_wrap(~sigma_m)
 ```
 
 ## Compare rates of learning
 
 ```{r}
 # delta function for true model distribution
-h_star = array(0,dim = length(models)) 
-h_star[2] = 1
+h_star = array(0,dim = n_models) 
+h_star[true_i] = 1
 ## Fn for the base-2 KL divergence from true model, in a friendly format
 kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 
-bind_rows(plus = plus_hindcast$model_posterior,
-          mdp = mdp_hindcast$posterior, 
+
+learning <- function(m){
+bind_rows(plus = m$plus_hindcast$model_posterior,
+          mdp = m$mdp_hindcast$posterior, 
           .id = "method") %>%
 mutate(time = year[rep(1:Tmax,2)], rep = 1) %>%
 gather(model, value, -time, -rep, -method) %>%
 group_by(time, rep, method) %>% 
-summarise(kl = kl2(value)) %>%
+summarise(kl = kl2(value))
+}
 
+
+s_hindcasts %>% map_df(learning, .id="sigma_m") %>%
 ggplot(aes(time, kl, col = method)) + 
-stat_summary(geom="line", fun.y = mean, lwd = 1)
+stat_summary(geom="line", fun.y = mean, lwd = 1) + facet_wrap(~sigma_m)
 ```
 
 ### Final beliefs
@@ -227,11 +236,15 @@ stat_summary(geom="line", fun.y = mean, lwd = 1)
 Show the final belief over models for pomdp and mdp:
 
 ```{r}
-barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
-```
 
-```{r}
-barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
+final_belief <- function(m)
+  bind_rows(plus = m$plus_hindcast$model_posterior[Tmax,],
+            mdp = m$mdp_hindcast$posterior[Tmax,], 
+            .id = "method")
+
+s_hindcasts %>% map_df(final_belief, .id="sigma_m") %>% gather(r, prob, -sigma_m, -method) %>%
+  ggplot(aes(r, prob, fill = method)) + geom_bar(stat="identity", position = "dodge") + facet_wrap(~sigma_m) 
+
 ```
 
 
@@ -247,31 +260,32 @@ set.seed(123)
 ```
 
 Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
+We also simulate replicates under MDP learning (with observation uncertainty).
 
 ```{r}
+mc.cores <- 1
+forecasts <- function(m, s){
+
 plus_forecast <- 
 plus_replicate(40, 
-               sim_plus(models = models, discount = discount,
-                        model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
-                        state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
-                        x0 = x0, Tmax = Tmax, true_model = models[[1]], alphas = alphas), 
-               mc.cores = parallel::detectCores())
+               sim_plus(models = m$models, discount = m$discount,
+                        model_prior = as.numeric(s$plus_hindcast$model_posterior[length(y), ]),
+                        state_prior = as.numeric(s$plus_hindcast$state_posterior[length(y), ]),
+                        x0 = x0, Tmax = Tmax, true_model = m$models[[true_i]], alphas = m$alphas), 
+               mc.cores = mc.cores)
 
-
-```
-
-We simulate replicates under MDP learning (with observation uncertainty):
-
-```{r}
-set.seed(123)
 mdp_forecast <- 
 plus_replicate(40, 
-               mdp_learning(transition = transitions, reward = models[[1]]$reward, 
-                            model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
+               mdp_learning(transition = m$transitions, reward = m$reward, 
+                            model_prior = as.numeric(s$mdp_hindcast$posterior[length(y),]),
                             discount = discount, x0 = x0,  Tmax = Tmax,
-                            true_transition = transitions[[1]], 
-                            observation = models[[1]]$observation),
-               mc.cores = parallel::detectCores())
+                            true_transition = m$transitions[[true_i]], 
+                            observation = m$models[[true_i]]$observation),
+               mc.cores = mc.cores)
+
+}
+
+s_forecasts <- map2(m, s_hindcasts, forecasts)
 ```
 
 ## Compare forecasts
@@ -281,14 +295,23 @@ historical <- bluefin_tuna[c("tsyear", "total", "catch_landings")] %>%
   rename(time = tsyear, state = total, action = catch_landings) %>% 
   mutate(method = "historical")
 
-bind_rows(plus = plus_forecast$df, 
-          mdp = mdp_forecast$df,
+
+
+combine_forecasts <- function(s){
+bind_rows(plus = s$plus_forecast$df, 
+          mdp = s$mdp_forecast$df,
           .id = "method")  %>% 
 select(-value, -obs) %>% 
 mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
 bind_rows(historical) %>%
 rename("catch (MT)" = action, "stock (MT)" = state) %>%  
-gather(variable, stock, -time, -rep, -method) %>%
+gather(variable, stock, -time, -rep, -method)
+}
+
+
+s_forecasts %>% map_df(combine_forecasts, .id = "sigma_m") -> df
+
+df %>%
 ggplot(aes(time, stock)) + 
   geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
