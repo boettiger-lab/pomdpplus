@@ -14,7 +14,7 @@ library("pomdpplus")
 library("tidyverse")
 library("seewave") ## For KL divergence only
 
-knitr::opts_chunk$set(cache = TRUE, message=FALSE)
+knitr::opts_chunk$set(cache = FALSE, message=FALSE)
 theme_set(theme_bw())
 ```
 
@@ -178,9 +178,9 @@ future <- 2009:2067
 
 hindcasts <- function(m){
 
-list(plus_hindcast = compare_plus(models = m$models, discount = m$discount,
+list(plus_hindcast = compare_plus(models = m$models, discount = discount,
                               obs = y, action = a, alphas = m$alphas),
-     mdp_hindcast = mdp_historical(m$transitions, m$reward, m$discount, state = y, action = a))
+     mdp_hindcast = mdp_historical(m$transitions, m$reward, discount, state = y, action = a))
 
 }
 
@@ -265,23 +265,19 @@ We also simulate replicates under MDP learning (with observation uncertainty).
 ```{r}
 mc.cores <- 1
 forecasts <- function(m, s){
-
-plus_forecast <- 
-plus_replicate(40, 
-               sim_plus(models = m$models, discount = m$discount,
+list(plus_forecast = plus_replicate(40, 
+               sim_plus(models = m$models, discount = discount,
                         model_prior = as.numeric(s$plus_hindcast$model_posterior[length(y), ]),
                         state_prior = as.numeric(s$plus_hindcast$state_posterior[length(y), ]),
                         x0 = x0, Tmax = Tmax, true_model = m$models[[true_i]], alphas = m$alphas), 
-               mc.cores = mc.cores)
-
-mdp_forecast <- 
-plus_replicate(40, 
+               mc.cores = mc.cores),
+     mdp_forecast = plus_replicate(40, 
                mdp_learning(transition = m$transitions, reward = m$reward, 
                             model_prior = as.numeric(s$mdp_hindcast$posterior[length(y),]),
                             discount = discount, x0 = x0,  Tmax = Tmax,
                             true_transition = m$transitions[[true_i]], 
                             observation = m$models[[true_i]]$observation),
-               mc.cores = mc.cores)
+               mc.cores = mc.cores))
 
 }
 
@@ -316,7 +312,7 @@ ggplot(aes(time, stock)) +
   geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
-  facet_wrap(~variable, ncol = 1, scales = "free_y")
+  facet_grid(sigma_m ~ variable, scales = "free_y")
 
 ```
 
