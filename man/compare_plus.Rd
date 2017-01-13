@@ -5,7 +5,7 @@
 \title{compare_plus}
 \usage{
 compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
-  action, alphas = NULL, verbose = TRUE, mc.cores = 1L, ...)
+  action, alphas = NULL, model_names = NA, state_names = NA, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}
@@ -16,17 +16,17 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 
 \item{state_prior}{Prior belief that system is in state x_i before simulation starts}
 
-\item{obs}{vector of observations from given data}
+\item{obs}{vector of historical observations. Must use index value of (discrete) observation}
 
-\item{action}{vector of actions corresponding to each observation, given the data}
+\item{action}{corresponding vector of historical actions. Must use index value of (discrete) action}
 
 \item{alphas}{the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.}
 
-\item{verbose}{should function provide messages?}
+\item{model_names}{vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.}
 
-\item{mc.cores}{number of parallel cores. Only relevant if alphas not provided. Be sure adequate memory is available first!}
+\item{state_names}{vector of identifying names for each state.  If none are provided, state posterior columns will be named V1, V2, etc.}
 
-\item{...}{additiional options to appl::sarsop, if alphas are not provided}
+\item{...}{additional options to appl::sarsop, if alphas are not provided}
 }
 \value{
 a list with elements

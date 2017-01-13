@@ -11,7 +11,9 @@
 #' @param Tmax number of time steps to simulate
 #' @param true_model a list of the transition matrix, observation matrix, and reward matrix used to simulate draws.
 #' @param alphas the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.
-#' @param ... additiional options to appl::sarsop, if alphas are not provided
+#' @param model_names vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.
+#' @param state_names vector of identifying names for each state.  If none are provided, state posterior columns will be named V1, V2, etc.
+#' @param ... additional options to appl::sarsop, if alphas are not provided
 #'
 #' @return a list with elements
 #' (1) \code{df} a data.frame with the time, state, observation, action, and value at each timestep,
@@ -28,8 +30,11 @@
 #' }
 #'
 sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
-                     x0, a0 = 1, Tmax, true_model,
-                     alphas = NULL, ...){
+                     x0, a0 = 1, Tmax, true_model, alphas = NULL,
+                     model_names = NA, state_names = NA, ...){
+
+  if(is.na(model_names))
+    model_names <- names(models)
 
   ## Initialize objects
   n_states <- dim(models[[1]][["observation"]])[1]
@@ -80,9 +85,21 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
 
   ## assemble data frame without dummy year for starting action
   df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
+
+  model_posterior = as.data.frame(model_posterior[2:(Tmax+1),])
+  state_posterior = as.data.frame(state_posterior[2:(Tmax+1),])
+
+  if(!is.na(model_names))
+    names(model_posterior) <- model_names
+  if(!is.na(model_names))
+    names(state_posterior) <- state_names
+
+  #  model_posterior$time <- 1:Tmax
+  #  state_posterior$time <- 1:Tmax
+
   list(df = df,
-       model_posterior = as.data.frame(model_posterior[2:(Tmax+1),]),
-       state_posterior = as.data.frame(state_posterior[2:(Tmax+1),]))
+       model_posterior = model_posterior,
+       state_posterior = state_posterior)
 }
 
 
