@@ -5,8 +5,8 @@
 \title{sim_plus}
 \usage{
 sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
-  a0 = 1, Tmax, true_model, alphas = NULL, model_names = NA,
-  state_names = NA, ...)
+  a0 = 1, Tmax, true_model, alphas = NULL, model_names = NULL,
+  state_names = NULL, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}

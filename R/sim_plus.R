@@ -31,9 +31,9 @@
 #'
 sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
                      x0, a0 = 1, Tmax, true_model, alphas = NULL,
-                     model_names = NA, state_names = NA, ...){
+                     model_names = NULL, state_names = NULL, ...){
 
-  if(is.na(model_names))
+  if(any(is.null(model_names)))
     model_names <- names(models)
 
   ## Initialize objects
@@ -89,9 +89,9 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   model_posterior = as.data.frame(model_posterior[2:(Tmax+1),])
   state_posterior = as.data.frame(state_posterior[2:(Tmax+1),])
 
-  if(!any(is.na(model_names)))
+  if(!any(is.null(model_names)))
     names(model_posterior) <- model_names
-  if(!any(is.na(model_names)))
+  if(!any(is.null(model_names)))
     names(state_posterior) <- state_names
 
   #  model_posterior$time <- 1:Tmax

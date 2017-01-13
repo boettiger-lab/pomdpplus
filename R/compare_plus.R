@@ -21,7 +21,12 @@
 #' }
 #'
 compare_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
-                         obs, action, alphas = NULL, model_names = NA, state_names = NA, ...){
+                         obs, action, alphas = NULL, model_names = NULL, state_names = NULL, ...){
+
+
+  if(any(is.null(model_names)))
+    model_names <- names(models)
+
   ## Initialize objects
   Tmax <- length(obs)
   n_states <- dim(models[[1]][["observation"]])[1]
@@ -51,9 +56,9 @@ compare_plus <- function(models, discount, model_prior = NULL, state_prior = NUL
   model_posterior = as.data.frame(model_posterior)
   state_posterior = as.data.frame(state_posterior)
 
-  if(!any(is.na(model_names)))
+  if(!any(is.null(model_names)))
     names(model_posterior) <- model_names
-  if(!any(is.na(model_names)))
+  if(!any(is.null(model_names)))
     names(state_posterior) <- state_names
 
 #  model_posterior$time <- 1:Tmax
