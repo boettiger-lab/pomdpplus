@@ -89,9 +89,9 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   model_posterior = as.data.frame(model_posterior[2:(Tmax+1),])
   state_posterior = as.data.frame(state_posterior[2:(Tmax+1),])
 
-  if(!is.na(model_names))
+  if(!any(is.na(model_names)))
     names(model_posterior) <- model_names
-  if(!is.na(model_names))
+  if(!any(is.na(model_names)))
     names(state_posterior) <- state_names
 
   #  model_posterior$time <- 1:Tmax
