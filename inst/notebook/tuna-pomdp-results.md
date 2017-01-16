@@ -17,7 +17,7 @@ Identify available solutions in the log that match the desired parameters
 
 
 ```r
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna-50"
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna-100"
 meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir) %>% arrange(r)
 ```
 
@@ -27,55 +27,57 @@ meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir)
 ```
 
 ```r
+# drop repeated values
+meta <- meta[-c(4,9),]
 meta
 ```
 
 ```
-##            id load_time_sec init_time_sec run_time_sec final_precision
-## 1 2ff6d2cc3ab          0.59         72.83        72.84    -2.99524e-07
-## 2 2fe6d2cc3ab          0.67        114.97     51772.70     3.31746e-02
-## 3 31329c2d3ef          0.61        117.40     51001.60     1.42153e-02
-## 4 31229c2d3ef          0.66        129.19     51169.00     3.20650e-02
-## 5 31129c2d3ef          0.56        120.72     51068.70     3.74855e-02
-## 6 31029c2d3ef          0.70        138.83     51417.40     7.82105e-02
-## 7 30f29c2d3ef          0.65        127.39     51286.50     2.14102e-02
-## 8 30e29c2d3ef          0.59        126.75     51904.50     2.99960e-02
-##                end_condition n_states n_obs n_actions discount
-## 1   target precision reached       50    50        50     0.99
-## 2     Preset timeout reached       50    50        50     0.99
-## 3     Preset timeout reached       50    50        50     0.99
-## 4     Preset timeout reached       50    50        50     0.99
-## 5     Preset timeout reached       50    50        50     0.99
-## 6     Preset timeout reached       50    50        50     0.99
-## 7     Preset timeout reached       50    50        50     0.99
-## 8     Preset timeout reached       50    50        50     0.99
-##                  date     r sigma_m         K  C    sigma_g discount.1
-## 1 2016-12-31 21:44:41 0.025     0.3 0.9903371 NA 0.01720091       0.99
-## 2 2017-01-01 11:14:53 0.050     0.3 0.9903371 NA 0.01720091       0.99
-## 3 2016-12-31 21:01:47 0.075     0.3 0.9903371 NA 0.01720091       0.99
-## 4 2016-12-31 21:04:34 0.100     0.3 0.9903371 NA 0.01720091       0.99
-## 5 2016-12-31 21:02:53 0.125     0.3 0.9903371 NA 0.01720091       0.99
-## 6 2016-12-31 21:08:41 0.150     0.3 0.9903371 NA 0.01720091       0.99
-## 7 2016-12-31 21:06:31 0.175     0.3 0.9903371 NA 0.01720091       0.99
-## 8 2016-12-31 21:16:51 0.200     0.3 0.9903371 NA 0.01720091       0.99
-##    model precision  memory timeout timeInterval max_state max_obs
-## 1 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 2 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 3 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 4 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 5 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 6 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 7 ricker     1e-12 5344949   50000         5000       1.2     1.2
-## 8 ricker     1e-12 5344949   50000         5000       1.2     1.2
-##   max_action min_state min_obs min_action
-## 1        1.2         0       0          0
-## 2        1.2         0       0          0
-## 3        1.2         0       0          0
-## 4        1.2         0       0          0
-## 5        1.2         0       0          0
-## 6        1.2         0       0          0
-## 7        1.2         0       0          0
-## 8        1.2         0       0          0
+##             id load_time_sec init_time_sec run_time_sec final_precision
+## 1   406d2c6c11          4.11        683.80      53742.1      0.00662714
+## 2    3d589205e          4.20        691.01      53333.4      0.00525895
+## 3    3d489205e          4.15        723.48      53103.5      0.01269750
+## 5   404d2c6c11          4.14        782.07      54005.2      0.01318350
+## 6    3d289205e          4.05        846.03      53826.6      0.01882530
+## 7    40689205e          4.08        826.68      52769.3      0.02087950
+## 8  3d547992801          4.04        844.88      53993.9      0.02822200
+## 10 3d447992801          4.24        904.45      55129.1      0.03129410
+##               end_condition n_states n_obs n_actions discount
+## 1    Preset timeout reached      100   100       100     0.99
+## 2    Preset timeout reached      100   100       100     0.99
+## 3    Preset timeout reached      100   100       100     0.99
+## 5    Preset timeout reached      100   100       100     0.99
+## 6    Preset timeout reached      100   100       100     0.99
+## 7    Preset timeout reached      100   100       100     0.99
+## 8    Preset timeout reached      100   100       100     0.99
+## 10   Preset timeout reached      100   100       100     0.99
+##                   date     r sigma_m         K  C    sigma_g discount.1
+## 1  2017-01-12 02:44:51 0.025     0.3 0.9903371 NA 0.01720091       0.99
+## 2  2017-01-08 19:38:46 0.050     0.3 0.9903371 NA 0.01720091       0.99
+## 3  2017-01-08 19:53:44 0.075     0.3 0.9903371 NA 0.01720091       0.99
+## 5  2017-01-12 02:44:18 0.100     0.3 0.9903371 NA 0.01720091       0.99
+## 6  2017-01-08 19:11:29 0.125     0.3 0.9903371 NA 0.01720091       0.99
+## 7  2017-01-11 11:42:18 0.150     0.3 0.9903371 NA 0.01720091       0.99
+## 8  2017-01-08 04:42:53 0.175     0.3 0.9903371 NA 0.01720091       0.99
+## 10 2017-01-08 05:01:33 0.200     0.3 0.9903371 NA 0.01720091       0.99
+##     model precision timeout timeInterval max_state max_obs max_action
+## 1  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 2  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 3  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 5  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 6  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 7  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 8  ricker     1e-07   50000         5000       1.2     1.2        1.2
+## 10 ricker     1e-07   50000         5000       1.2     1.2        1.2
+##    min_state min_obs min_action
+## 1          0       0          0
+## 2          0       0          0
+## 3          0       0          0
+## 5          0       0          0
+## 6          0       0          0
+## 7          0       0          0
+## 8          0       0          0
+## 10         0       0          0
 ```
 
 Read in the POMDP problem specification from the log
@@ -93,6 +95,8 @@ sigma_m <- setup$sigma_m
 reward_fn <- function(x,h) pmin(x,h)
 discount <- setup$discount 
 models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+
+names(models) <- meta$r
 ```
 
 
@@ -108,6 +112,7 @@ reformat model solutions for use by the MDP functions as well:
 transitions <- lapply(models, `[[`, "transition")
 reward <- models[[1]]$reward
 observation <- models[[1]]$observation
+names(transitions) <- names(models)
 ```
 
 --------------------
@@ -270,9 +275,11 @@ kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 bind_rows(plus = plus_hindcast$model_posterior,
           mdp = mdp_hindcast$posterior, 
           .id = "method") %>%
-mutate(time = year[rep(1:Tmax,2)], rep = 1) %>%
-gather(model, value, -time, -rep, -method) %>%
-group_by(time, rep, method) %>% 
+mutate(time = year[rep(1:Tmax,2)]) %>%
+gather(model, value, -time, -method) %>%
+group_by(time, method) -> df
+  
+df  %>% 
 summarise(kl = kl2(value)) %>%
 
 ggplot(aes(time, kl, col = method)) + 
@@ -300,6 +307,28 @@ barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 ![](tuna-pomdp-results_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 
+```r
+posteriors <-
+bind_rows(plus = plus_hindcast$model_posterior,
+          mdp = mdp_hindcast$posterior, 
+          .id = "method")  %>%
+## include a time column
+mutate(time = rep(1:Tmax, 2)) %>%
+## but into long orientation
+gather(model, value, -time, -method)
+
+posteriors %>%
+  filter(time == Tmax) %>%
+  mutate(model = as.numeric(model)) %>%
+  ggplot(aes(model, value, fill=method)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  geom_vline(xintercept = meta$r[true_i], lwd = 1) + 
+  xlab("r value") + ylab("probability density") + ggtitle("Final belief state")
+```
+
+![](tuna-pomdp-results_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+
 
 ## Forecast simulations under PLUS and MDP-learning
 
@@ -310,6 +339,8 @@ All forecasts start from final stock, go forward an equal length of time:
 x0 <- y[length(y)] # Final stock, 
 Tmax <- length(y)
 set.seed(123)
+reps <- 40
+mc.cores <- parallel::detectCores()
 ```
 
 Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
@@ -317,12 +348,12 @@ Note also that forecasts start with the prior belief over states and prior belie
 
 ```r
 plus_forecast <- 
-plus_replicate(40, 
+parallel::mclapply(1:reps, function(i) 
                sim_plus(models = models, discount = discount,
                         model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
                         state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
                         x0 = x0, Tmax = Tmax, true_model = models[[true_i]], alphas = alphas), 
-               mc.cores = parallel::detectCores())
+               mc.cores = mc.cores)
 ```
 
 We simulate replicates under MDP learning (with observation uncertainty):
@@ -331,13 +362,13 @@ We simulate replicates under MDP learning (with observation uncertainty):
 ```r
 set.seed(123)
 mdp_forecast <- 
-plus_replicate(40, 
+parallel::mclapply(1:reps, function(i) 
                mdp_learning(transition = transitions, reward = models[[true_i]]$reward, 
                             model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
                             discount = discount, x0 = x0,  Tmax = Tmax,
                             true_transition = transitions[[true_i]], 
                             observation = models[[true_i]]$observation),
-               mc.cores = parallel::detectCores())
+               mc.cores = mc.cores)
 ```
 
 ## Compare forecasts
@@ -348,8 +379,8 @@ historical <- bluefin_tuna[c("tsyear", "total", "catch_landings")] %>%
   rename(time = tsyear, state = total, action = catch_landings) %>% 
   mutate(method = "historical")
 
-bind_rows(plus = plus_forecast$df, 
-          mdp = mdp_forecast$df,
+bind_rows(plus = plus_forecast %>% map_df(`[[`, "df", .id = "rep"), 
+          mdp = mdp_forecast %>% map_df(`[[`, "df", .id = "rep"),
           .id = "method")  %>% 
 select(-value, -obs) %>% 
 mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
@@ -363,6 +394,6 @@ ggplot(aes(time, stock)) +
   facet_wrap(~variable, ncol = 1, scales = "free_y")
 ```
 
-![](tuna-pomdp-results_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+![](tuna-pomdp-results_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
 

@@ -21,9 +21,11 @@ theme_set(theme_bw())
 Identify available solutions in the log that match the desired parameters
 
 ```{r}
-log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna-50"
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna-100"
 meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir) %>% arrange(r)
 
+# drop repeated values
+meta <- meta[-c(4,9),]
 meta
 ```
 
@@ -42,6 +44,8 @@ sigma_m <- setup$sigma_m
 reward_fn <- function(x,h) pmin(x,h)
 discount <- setup$discount 
 models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+
+names(models) <- meta$r
 ```
 
 ```{r}
@@ -55,6 +59,7 @@ reformat model solutions for use by the MDP functions as well:
 transitions <- lapply(models, `[[`, "transition")
 reward <- models[[1]]$reward
 observation <- models[[1]]$observation
+names(transitions) <- names(models)
 ```
 
 --------------------
@@ -200,9 +205,11 @@ kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
 bind_rows(plus = plus_hindcast$model_posterior,
           mdp = mdp_hindcast$posterior, 
           .id = "method") %>%
-mutate(time = year[rep(1:Tmax,2)], rep = 1) %>%
-gather(model, value, -time, -rep, -method) %>%
-group_by(time, rep, method) %>% 
+mutate(time = year[rep(1:Tmax,2)]) %>%
+gather(model, value, -time, -method) %>%
+group_by(time, method) -> df
+  
+df  %>% 
 summarise(kl = kl2(value)) %>%
 
 ggplot(aes(time, kl, col = method)) + 
@@ -221,6 +228,25 @@ barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
 barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
 ```
 
+```{r}
+posteriors <-
+bind_rows(plus = plus_hindcast$model_posterior,
+          mdp = mdp_hindcast$posterior, 
+          .id = "method")  %>%
+## include a time column
+mutate(time = rep(1:Tmax, 2)) %>%
+## but into long orientation
+gather(model, value, -time, -method)
+
+posteriors %>%
+  filter(time == Tmax) %>%
+  mutate(model = as.numeric(model)) %>%
+  ggplot(aes(model, value, fill=method)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  geom_vline(xintercept = meta$r[true_i], lwd = 1) + 
+  xlab("r value") + ylab("probability density") + ggtitle("Final belief state")
+```
+
 
 
 ## Forecast simulations under PLUS and MDP-learning
@@ -231,18 +257,20 @@ All forecasts start from final stock, go forward an equal length of time:
 x0 <- y[length(y)] # Final stock, 
 Tmax <- length(y)
 set.seed(123)
+reps <- 40
+mc.cores <- parallel::detectCores()
 ```
 
 Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
 
 ```{r}
 plus_forecast <- 
-plus_replicate(40, 
+parallel::mclapply(1:reps, function(i) 
                sim_plus(models = models, discount = discount,
                         model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
                         state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
                         x0 = x0, Tmax = Tmax, true_model = models[[true_i]], alphas = alphas), 
-               mc.cores = parallel::detectCores())
+               mc.cores = mc.cores)
 
 
 ```
@@ -252,13 +280,13 @@ We simulate replicates under MDP learning (with observation uncertainty):
 ```{r}
 set.seed(123)
 mdp_forecast <- 
-plus_replicate(40, 
+parallel::mclapply(1:reps, function(i) 
                mdp_learning(transition = transitions, reward = models[[true_i]]$reward, 
                             model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
                             discount = discount, x0 = x0,  Tmax = Tmax,
                             true_transition = transitions[[true_i]], 
                             observation = models[[true_i]]$observation),
-               mc.cores = parallel::detectCores())
+               mc.cores = mc.cores)
 ```
 
 ## Compare forecasts
@@ -268,8 +296,8 @@ historical <- bluefin_tuna[c("tsyear", "total", "catch_landings")] %>%
   rename(time = tsyear, state = total, action = catch_landings) %>% 
   mutate(method = "historical")
 
-bind_rows(plus = plus_forecast$df, 
-          mdp = mdp_forecast$df,
+bind_rows(plus = plus_forecast %>% map_df(`[[`, "df", .id = "rep"), 
+          mdp = mdp_forecast %>% map_df(`[[`, "df", .id = "rep"),
           .id = "method")  %>% 
 select(-value, -obs) %>% 
 mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
