@@ -1,0 +1,381 @@
+---
+output:
+  html_document: 
+    keep_md: yes
+    variant: markdown_github
+---  
+
+# Setup
+
+```{r message=FALSE}
+library("mdplearning")
+library("appl")
+library("pomdpplus")
+
+library("ggplot2")
+library("tidyr")
+library("purrr")
+library("dplyr")
+
+library("seewave") ## For KL divergence only
+
+knitr::opts_chunk$set(cache = FALSE, message=FALSE)
+theme_set(theme_bw())
+```
+
+(Scaled data created from RAM data via script in `mdplearning/data-raw/scaled_data.R`)
+
+
+
+```{r}
+library("nimble")
+data("scaled_data")
+ricker_code <- nimbleCode({
+  x[1] <- x0
+  for(t in 1:(N-1)){
+    s[t] <-  x[t] - min(x[t], a[t])
+    mu[t] <- log(s[t])  + r * (1 - s[t] / K) 
+    x[t+1] ~ dlnorm(mu[t], sd = sigma) 
+  }
+})
+
+ricker_model <- nimbleModel(code = ricker_code, 
+                            constants = list(N = length(scaled_data$a), a = scaled_data$a),
+                            inits =  list(K = 1, r = 0.1, sigma = 0.1, x0 = scaled_data$y[1]), 
+                            data = data.frame(x = scaled_data$y))
+
+mloglik <- function(pars){
+    if(any(pars < 0 )) return(1e12)
+    ricker_model$r <- pars[1]
+    ricker_model$K <- pars[2]
+    ricker_model$sigma <- pars[3]
+    - calculate(ricker_model)
+}
+
+ricker_fit <- optim(c(r = .1, K = 1, sigma = 0.1), mloglik, control = list(maxit = 20000))
+ricker_fit$par
+```
+
+
+
+## Problem definition
+
+(Code to create the logged alpha vectors; cached & not evaluated, very slow)
+
+```{r }
+mc.cores <- round(parallel::detectCores() / 2)
+
+log_dir <- "tuna"
+states <- seq(0, 1.2, len=150) # Vector of all possible states
+actions <- states  # Vector of actions: harvest
+obs <- states
+K = 0.9903371
+r = 0.05699246
+sigma_g = 0.01720091
+discount = 0.99
+
+vars <- expand.grid(r = rev(seq(0.025, 0.2, by =0.025)), sigma_m = c(0.1, 0.2, 0.3, 0.4, 0.5))
+
+# At 150 length, initialization time ~ 100,000 seconds, exceeds runtime
+
+## Detect available memory (linux servers only)
+memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])))
+## Bind this to a data.frame listing each of the fixed parameters across all runs
+fixed <- data.frame( K = K, C = NA, sigma_g = sigma_g, discount = discount, model = "ricker", 
+                     precision = 0.0000001, memory = memory / mc.cores, timeout = 250000, timeInterval = 10000,
+                     max_state = max(states), max_obs = max(obs), max_action = max(actions), 
+                     min_state = min(states), min_obs = min(obs), min_action = min(actions))
+pars <- data.frame(vars, fixed)
+## Usual assumption at the moment for reward fn
+reward_fn <- function(x,h) pmin(x,h)
+## Compute alphas for the above examples
+models <- lapply(1:dim(pars)[1], function(i){
+  ## Select the model
+  f <- switch(as.character(pars[i, "model"]), 
+              allen = appl:::allen(pars[i, "r"], pars[i, "K"], pars[i, "C"]),
+              ricker = appl:::ricker(pars[i, "r"], pars[i, "K"])
+  )
+  ## Compute matrices
+  fisheries_matrices(states, actions, obs, 
+                     reward_fn, f = f, 
+                     sigma_g = pars[i, "sigma_g"], 
+                     sigma_m  = pars[i, "sigma_m"])
+})
+
+
+
+```
+
+```{r}
+
+alphas <- sarsop_plus(models, 
+                      discount = pars[1, "discount"], 
+                      precision = pars[1, "precision"], 
+                      timeout = pars[1, "timeout"],
+                      timeInterval = pars[1, "timeInterval"],
+                      log_dir = log_dir, 
+                      log_data = pars,
+                      mc.cores = mc.cores)
+```
+
+Identify available solutions in the log that match the desired parameters
+
+```{r}
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna"
+meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.4), log_dir) %>% arrange(r)
+
+meta
+```
+
+Read in the POMDP problem specification from the log
+
+```{r}
+setup <- meta[1,]
+states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+actions <- states
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)  ## Not valid for non-uniform
+```
+
+```{r}
+alphas <- alphas_from_log(meta, log_dir)
+```
+
+
+reformat model solutions for use by the MDP functions as well:
+
+```{r}
+transitions <- lapply(models, `[[`, "transition")
+reward <- models[[1]]$reward
+observation <- models[[1]]$observation
+```
+
+--------------------
+
+# Verfication & Validation
+
+
+Compute the deterministic optimum solution:
+
+```{r}
+f <- f_from_log(meta)[[1]]
+S_star <- optimize(function(x) x / discount - f(x,0), c(min(states),max(states)))$minimum
+h <- pmax(states - S_star,  0)
+policy <- sapply(h, function(h) which.min((abs(h - actions))))
+det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
+```
+
+
+
+## Convergence testing
+
+```{r}
+# log dir must be local
+log_dir = "tuna/"
+inter <- appl:::intermediates_from_log(meta, log_dir = log_dir)
+
+df1 <- 
+purrr::map_df(1:length(models), function(j){
+  alphas <- inter[[j]]
+  m <- models[[j]]
+  purrr::map_df(1:length(alphas), function(i)
+    compute_policy(alphas[[i]], m$transition, m$observation, m$reward),
+    .id = "intermediate") 
+}, .id = "model_id")
+
+df1 %>% 
+  ggplot(aes(states[state], states[state] - actions[policy], col=intermediate)) + 
+  geom_line() + 
+  facet_wrap(~model_id, scales = "free") + 
+  coord_cartesian(ylim = c(0,0.5))
+```
+
+
+
+## Examine MDP
+
+
+```{r}
+unif <- mdp_compute_policy(transitions, reward, discount)
+prior <- numeric(length(models))
+prior[1] <- 1
+low <- mdp_compute_policy(transitions, reward, discount, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <- mdp_compute_policy(transitions, reward, discount, prior)
+
+bind_rows(unif = unif, low = low, true = true, det = det, .id = "model") %>%
+  ggplot(aes(states[state], states[state] - actions[policy], col = model)) + geom_line()
+```
+
+
+## Examine the policies from POMDP/PLUS solutions
+
+
+Compare a uniform prior to individial cases:
+
+```{r}
+prior <- numeric(length(models))
+prior[1] <- 1
+low <-  compute_plus_policy(alphas, models, prior)
+prior <- numeric(length(models))
+prior[2] <- 1
+true <-  compute_plus_policy(alphas, models, prior)
+unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
+prior <- numeric(length(models))
+prior[length(prior)] <- 1
+high <-  compute_plus_policy(alphas, models, prior)
+df <- dplyr::bind_rows(low = low, true=true, unif = unif, high = high, det = det, .id = "prior")
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+#  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
+
+```
+
+
+
+------------
+
+# Analysis
+
+## Hindcast 
+
+Historical catch and stock
+
+```{r}
+set.seed(123)
+data("scaled_data")
+y <- sapply(scaled_data$y, function(y) which.min(abs(states - y)))
+a <- sapply(scaled_data$a, function(a) which.min(abs(actions - a)))
+Tmax <- length(y)
+
+data("bluefin_tuna")
+to_mt <- max(bluefin_tuna$total) # 1178363 # scaling factor for data
+states_mt <- to_mt * states
+actions_mt <- to_mt * actions
+year <- 1952:2009
+future <- 2009:2067
+```
+
+
+```{r}
+plus_hindcast <- compare_plus(models = models, discount = discount,
+                    obs = y, action = a, alphas = alphas)
+```
+
+```{r}
+mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
+```
+
+```{r}
+left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
+          rename(mdp_hindcast$df, mdp = optimal)) %>%
+mutate("actual catch" = actions_mt[action], "estimated stock" = states_mt[state], 
+       plus = actions_mt[plus], mdp = actions_mt[mdp], time = year[time]) %>%
+       select(-state, -action) %>%
+gather(variable, stock, -time) %>% 
+ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
+```
+
+## Compare rates of learning
+
+```{r}
+# delta function for true model distribution
+h_star = array(0,dim = length(models)) 
+h_star[2] = 1
+## Fn for the base-2 KL divergence from true model, in a friendly format
+kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
+
+bind_rows(plus = plus_hindcast$model_posterior,
+          mdp = mdp_hindcast$posterior, 
+          .id = "method") %>%
+mutate(time = year[rep(1:Tmax,2)], rep = 1) %>%
+gather(model, value, -time, -rep, -method) %>%
+group_by(time, rep, method) %>% 
+summarise(kl = kl2(value)) %>%
+
+ggplot(aes(time, kl, col = method)) + 
+stat_summary(geom="line", fun.y = mean, lwd = 1)
+```
+
+### Final beliefs
+
+Show the final belief over models for pomdp and mdp:
+
+```{r}
+barplot(as.numeric(plus_hindcast$model_posterior[Tmax,]))
+```
+
+```{r}
+barplot(as.numeric(mdp_hindcast$posterior[Tmax,]))
+```
+
+
+
+## Forecast simulations under PLUS and MDP-learning
+
+All forecasts start from final stock, go forward an equal length of time:
+
+```{r}
+x0 <- y[length(y)] # Final stock, 
+Tmax <- length(y)
+set.seed(123)
+```
+
+Note also that forecasts start with the prior belief over states and prior belief over models that was determined from the historical data.  
+
+```{r}
+plus_forecast <- 
+plus_replicate(40, 
+               sim_plus(models = models, discount = discount,
+                        model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
+                        state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
+                        x0 = x0, Tmax = Tmax, true_model = models[[1]], alphas = alphas), 
+               mc.cores = parallel::detectCores())
+
+
+```
+
+We simulate replicates under MDP learning (with observation uncertainty):
+
+```{r}
+set.seed(123)
+mdp_forecast <- 
+plus_replicate(40, 
+               mdp_learning(transition = transitions, reward = models[[1]]$reward, 
+                            model_prior = as.numeric(mdp_hindcast$posterior[length(y),]),
+                            discount = discount, x0 = x0,  Tmax = Tmax,
+                            true_transition = transitions[[1]], 
+                            observation = models[[1]]$observation),
+               mc.cores = parallel::detectCores())
+```
+
+## Compare forecasts
+
+```{r}
+historical <- bluefin_tuna[c("tsyear", "total", "catch_landings")] %>% 
+  rename(time = tsyear, state = total, action = catch_landings) %>% 
+  mutate(method = "historical")
+
+bind_rows(plus = plus_forecast$df, 
+          mdp = mdp_forecast$df,
+          .id = "method")  %>% 
+select(-value, -obs) %>% 
+mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
+bind_rows(historical) %>%
+rename("catch (MT)" = action, "stock (MT)" = state) %>%  
+gather(variable, stock, -time, -rep, -method) %>%
+ggplot(aes(time, stock)) + 
+  geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
+  stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
+  stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
+  facet_wrap(~variable, ncol = 1, scales = "free_y")
+
+```
+
+

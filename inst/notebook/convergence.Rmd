@@ -1,0 +1,159 @@
+---
+output:
+  html_document: 
+    keep_md: yes
+    variant: markdown_github
+---  
+
+# Setup
+
+```{r message=FALSE}
+library("mdplearning")
+library("appl")
+library("pomdpplus")
+
+library("ggplot2")
+library("tidyr")
+library("purrr")
+library("dplyr")
+
+library("seewave") ## For KL divergence only
+
+knitr::opts_chunk$set(cache = TRUE, message=FALSE)
+theme_set(theme_bw())
+```
+
+
+
+## Problem definition
+
+(Code to create the logged alpha vectors; cached & not evaluated, very slow)
+
+```{r }
+log_dir = "."
+
+## Parameters from nimble's maximum likelihood estimate
+K = 0.9903371
+r = 0.05699246
+sigma_g = 0.01720091
+
+states <- seq(0,1.2, length=100) # Vector of all possible states
+actions <- seq(0,.8, length=100)   # Vector of actions: harvest
+obs <- states
+reward_fn <- function(x,h) pmin(x,h)
+
+
+## Detect available memory (linux servers only)
+memory <- round(0.95 * as.numeric(gsub(".* (\\d+) .*", "\\1", system("cat /proc/meminfo", intern=TRUE)[1])) / 1000)
+
+
+## Create a data frame of all parameter combinations to be run, along with fixed parameters
+vars <- expand.grid(r = seq(0.025, 0.2, by =0.025), sigma_m = c(0.1, 0.3, 0.6))
+fixed <- data.frame(model = "ricker", sigma_g = sigma_g, discount = 0.99, 
+                    precision = 0.0000001, K = K, C = NA,  max_state = max(states),
+                    max_obs = max(obs), max_action = max(actions), min_state = min(states),
+                    min_obs = min(obs), min_action = min(actions), memory = memory)
+models <- data.frame(vars, fixed)
+
+
+## Compute alphas for the above examples
+for(i in 1:dim(models)[1]) {
+## Select the model
+  f <- switch(models[i, "model"], 
+    allen = appl:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
+    ricker = appl:::ricker(models[i, "r"], models[i, "K"])
+  )
+## Determine the matrices
+  m <- appl::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
+                          sigma_g = models[i, "sigma_g"], sigma_m  = models[i, "sigma_m"])
+## record data for the log
+  log_data <- models
+## run sarsop
+  alpha <- appl::sarsop(m$transition, m$observation, m$reward, 
+                        discount = models[i, "discount"], 
+                        precision = models[i, "precision"], 
+                        memory = models[i, "memory"],
+                        log_dir = log_dir, 
+                        log_data = log_data,
+                        timeout = 5000)
+
+}
+
+```
+
+Identify available solutions in the log that match the desired parameters
+
+```{r}
+meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir)
+knitr::kable(meta)
+```
+
+Read in the POMDP problem specification from the log
+
+```{r}
+setup <- meta[1,]
+states <- seq(0, setup$max_state, length=setup$n_states) # Vector of all possible states
+actions <- seq(0, setup$max_action, length=setup$n_actions)   # Vector of actions: harvest
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
+```
+
+
+reformat model solutions for use by the MDP functions as well:
+
+```{r}
+transitions <- lapply(models, `[[`, "transition")
+reward <- models[[1]]$reward
+observation <- models[[1]]$observation
+```
+
+--------------------
+
+# Verfication & Validation
+
+## Examine the policies from POMDP/PLUS solutions
+
+Compute the deterministic optimum solution:
+
+```{r}
+f <- f_from_log(meta)[[1]]
+S_star <- optimize(function(x) x / discount - f(x,0), c(min(states),max(states)))$minimum
+h <- pmax(states - S_star,  0)
+policy <- sapply(h, function(h) which.min((abs(h - actions))))
+det <- data.frame(policy, value = 1:length(states), state = 1:length(states))
+```
+
+
+
+Compare a uniform prior to individial cases:
+
+```{r}
+
+prior <- numeric(length(models))
+prior[1] <- 1
+low <-  compute_plus_policy(alphas, models, prior)
+
+
+prior <- numeric(length(models))
+prior[2] <- 1
+true <-  compute_plus_policy(alphas, models, prior)
+
+
+prior <- numeric(length(models))
+prior[length(models)] <- 1
+high <-  compute_plus_policy(alphas, models, prior)
+
+unif <- compute_plus_policy(alphas, models) # e.g. 'planning only'
+df <- dplyr::bind_rows(low = low, unif = unif, high = high, det = det, true = true, .id = "prior")
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
+
+```
+
