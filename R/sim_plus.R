@@ -29,7 +29,7 @@
 #'                 true_model = models[[2]], alphas = alphas)
 #' }
 #'
-sim_plus2 <- function(models, discount, model_prior = NULL, state_prior = NULL,
+sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
 x0, a0 = 1, Tmax, true_model, alphas = NULL,
 model_names = NULL, state_names = NULL, ...){
     
@@ -53,7 +53,7 @@ model_names = NULL, state_names = NULL, ...){
     action[1] <- a0  # only relevant if action influences observation process
     model_posterior[2,] <- model_prior
     for(i in 1:n_models){
-        state_posterior[2,,i] <- state_prior
+        state_posterior[2,i,] <- state_prior
     }
     
     ## If alphas are not provided, assume we are running pomdpsol each time
@@ -68,10 +68,10 @@ model_names = NULL, state_names = NULL, ...){
     ## Forward simulation, updating belief
     for(t in 2:Tmax){
         ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
-        if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,,], ...)
+        if(update_alphas) alphas <- sarsop_plus2(models, discount, state_posterior[t,,], ...)
         
         ## Get the policy corresponding to each possible observation, given the current beliefs
-        policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,,], action[t-1])
+        policy <- compute_plus_policy2(alphas, models, model_posterior[t,], state_posterior[t,,], action[t-1])
         
         ## Update system using random samples from the observation & transition distributions:
         obs[t] <- sample(1:n_obs, 1, prob = true_model$observation[state[t], , action[t-1]])
@@ -89,7 +89,7 @@ model_names = NULL, state_names = NULL, ...){
     df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
     
     model_posterior = as.data.frame(model_posterior[2:(Tmax+1),])
-    state_posterior = as.data.frame(state_posterior[2:(Tmax+1),])
+    state_posterior = as.data.frame(state_posterior[2:(Tmax+1),,])
     
     if(!any(is.null(model_names)))
     names(model_posterior) <- model_names
@@ -106,15 +106,13 @@ model_names = NULL, state_names = NULL, ...){
 
 
 update_model_belief <-  function(state_prior, model_prior, models, observation, action){
-    belief <-
-    model_prior *
-    vapply(1:length(models), function(k){
-        
-        state_prior[k,] %*%
+    ss = array(0, dim = length(models))
+    for(k in 1:length(models)){
+        ss[k] = state_prior[k,] %*%
         models[[k]]$transition[, , action] %*%
         models[[k]]$observation[, observation, action]
-        
-    }, numeric(1))
+    }
+    belief = model_prior * ss
     belief / sum(belief)
 }
 
@@ -126,12 +124,12 @@ update_state_belief <- function(state_prior, model_prior, models, observation, a
         b = zeros((length(action)+1),dim(models[[1]]$transition)[1])
         b[1,] = state_prior[i,]
         for(j in 1:length(action)){
-            b[j+1,] = (b[j,] %*% models[[i]]$transition[,,actions[j]]*t(models[[i]]$observation[,zobservation[i],action[i]]))
+            b[j+1,] = (b[j,] %*% models[[i]]$transition[,,action[j]]*t(models[[i]]$observation[,observation[j],action[j]]))
             b[j+1,] = b[j+1,] / sum(b[j+1,])
         }
-        belief[i,] = b[length(actions)+1,]
+        belief[i,] = b[length(action)+1,]
     }
-    
+    belief
 }
 
 

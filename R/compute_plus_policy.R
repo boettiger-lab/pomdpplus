@@ -19,11 +19,7 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
     n_obs <- dim(models[[1]]$observation)[[2]]
     n_models <- length(models)
     n_alpha <- length(alphas)
-    if(is.null(state_prior)){
-        state_prior = array(0, dim = c(length(models),n_states))
-        for(i in 1:length(models))
-        state_prior[i,] <- rep(1, n_states) / n_states
-    }
+    if(is.null(state_prior)) state_prior <- rep(1, n_states) / n_states
     if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
     
     
@@ -33,7 +29,7 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
         ## belief[k,i] is belief system is in state k given observed state i
         belief <- vapply(1:n_obs,
         function(i){
-            b <- state_prior[j,] %*% m$transition[, , a0] * m$observation[, i, a0]
+            b <- state_prior[j,] %*% m$transition[, , a0] * t(m$observation[, i, a0])
             if(sum(b) == 0) numeric(n_states) ## observed state i is impossible
             else b / sum(b)
         },
