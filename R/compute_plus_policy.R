@@ -12,15 +12,16 @@
 #' alphas <- sarsop_plus(models, discount, precision = 1)
 #' unif <- compute_plus_policy(alphas, models)
 #' }
-compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior = NULL, a0 = 1){
+compute_plus_policy <- function(alphas, models, prior = NULL, a0 = 1){
 
   n_states <- dim(models[[1]]$observation)[[1]]
   n_actions <- dim(models[[1]]$observation)[[3]]
   n_obs <- dim(models[[1]]$observation)[[2]]
   n_models <- length(models)
   n_alpha <- length(alphas)
-  if(is.null(state_prior)) state_prior <- rep(1, n_states) / n_states
-  if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
+  if(is.null(prior))
+    prior <- outer(rep(1, n_models) / n_models, rep(1, n_states) / n_states)
+
 
 
   EV <- array(0, c(n_states, n_actions))
@@ -29,12 +30,11 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
     ## belief[k,i] is belief system is in state k given observed state i
     belief <- vapply(1:n_obs,
                      function(i){
-                       b <- state_prior %*% m$transition[, , a0] * m$observation[, i, a0]
-                       if(sum(b) == 0) numeric(n_states) ## observed state i is impossible
-                       else b / sum(b)
+                       b <- normalize(prior[j,]) %*% m$transition[, , a0] * m$observation[, i, a0]
+                       normalize(b)
                      },
-                     numeric(n_states))
-    V <- t(belief) %*% alphas[[j]]$vectors  * model_prior[j]
+                     numeric(n_states)) #vapply return size
+    V <- t(belief) %*% alphas[[j]]$vectors
     EV <- EV + regularize_V(V, alphas[[j]]$action, n_actions)
   }
 
