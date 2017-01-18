@@ -29,7 +29,7 @@
 #'                 true_model = models[[2]], alphas = alphas)
 #' }
 #'
-sim_plus <- function(models, discount, prior = NULL,
+sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
                      x0, a0 = 1, Tmax, true_model, alphas = NULL,
                      model_names = NULL, ...){
 
@@ -45,15 +45,15 @@ sim_plus <- function(models, discount, prior = NULL,
 
 
   ## Defaults if not provided
-  if(is.null(prior))
-    prior <- outer(rep(1, n_models) / n_models, rep(1, n_states) / n_states)
+  if(is.null(state_prior))
+    state_prior <- outer(rep(1, n_models), rep(1, n_states) / n_states)
+  if(is.null(model_prior))
+    model_prior <- rep(1, n_models) / n_models
 
   ## Assign starting values
   state[2] <- x0
   action[1] <- a0  # only relevant if action influences observation process
-  posterior[,,2] <- prior
-
-
+  state_posterior[,,2] <- state_prior
 
   ## If alphas are not provided, assume we are running pomdpsol each time
   if(is.null(alphas)){
@@ -66,10 +66,10 @@ sim_plus <- function(models, discount, prior = NULL,
   ## Forward simulation, updating belief
   for(t in 2:Tmax){
     ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
-    if(update_alphas) alphas <- sarsop_plus(models, discount, posterior[,,t], ...)
+    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[,,t], ...)
 
     ## Get the policy corresponding to each possible observation, given the current beliefs
-    policy <- compute_plus_policy(alphas, models, posterior[,,t], action[t-1])
+    policy <- compute_plus_policy(alphas, models, model_posterior[,t], state_posterior[,,t], action[t-1])
 
     ## Update system using random samples from the observation & transition distributions:
     obs[t] <- sample(1:n_obs, 1, prob = true_model$observation[state[t], , action[t-1]])
@@ -77,18 +77,16 @@ sim_plus <- function(models, discount, prior = NULL,
     value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
 
-    ## Bayesian update of beliefs over models and states
-    #posterior[,,t+1] <- update_plus_belief(posterior[,,t], models, obs[t], action[t-1])
-
-    posterior_model[,t+1] <- update_plus_belief(posterior[,,t], models, obs[t], action[t-1], posterior_model[,t])
-    posterior[,,t+1] <- update_plus_belief(posterior[,,t], models, obs[t], action[t-1])
+    posterior_model[,t+1] <- update_model_belief(state_posterior[,,t], models, obs[t], action[t-1], posterior_model[,t])
+    state_posterior[,,t+1] <- update_state_belief(state_posterior[,,t], models, obs[t], action[t-1])
   }
 
   ## assemble data frame without dummy year for starting action
   df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
 
   list(df = df,
-       posterior = posterior[,,-1])
+       model_posterior = as.data.frame(model_posterior[,-1]),
+       state_posterior = state_posterior[,,-1])
 }
 
 normalize <- function(x){
@@ -106,25 +104,14 @@ update_state_belief <- function(posterior, models, z0, a0){
 
 
 update_model_belief <- function(posterior, models, z0, a0, model_belief){
-  vapply(1:length(models), function(i){
+  model_posterior <- vapply(1:length(models), function(i){
     state_belief <- t(normalize(posterior[i,]))
     (state_belief %*% models[[i]]$transition[, , a0]) %*% models[[i]]$observation[, z0, a0] * model_belief[i]
   }, numeric(dim(posterior)[[1]]) )
+
+  normalize(model_posterior)
 }
 
 
-update_plus_belief <- function(posterior, models, z0, a0){
-
-  model_belief <- rowSums(posterior)
-  posterior <- vapply(1:length(models), function(i){
-    state_belief <- t(normalize(posterior[i,]))
-    b <- normalize( state_belief %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
-    p <- (state_belief %*% models[[i]]$transition[, , a0]) %*% models[[i]]$observation[, z0, a0] * model_belief[i]
-    b * as.numeric(p)
-
-  }, numeric(dim(posterior)[[2]]) )
-
-  t(posterior)
-}
 
 

@@ -21,142 +21,144 @@ knitr::opts_chunk$set(
 
 ```{r}
 library("pomdpplus")
-library("ggplot2")
-library("tidyr")
-library("dplyr")
+library("tidyverse")
 library("seewave")
 ```
 
 Initialize a simple POMDP model for fisheries:
 
-```{r}
-states <- 1:10
+
+## Problem definition
+
+
+```{r eval = FALSE}
+## Not run, all parameters read from log instead
+
+states <- 0:21
 actions <- states
-observed_states <- states
-reward_fn <-  function(x, a) pmin(x, a)
-sigma_g <- 0.28
-sigma_m <- 0.28
+obs <- states
+sigma_g <- 0.1
+sigma_m <- sigma_g
+reward_fn <- function(x,h) pmin(x,h)
 discount <- 0.95
 
-## Create a list of functions, each function providing the model with different parameter combinations
-p <- expand.grid(K = c(1,3), r = c(0.5, 1, 1.5))
-models <- apply(p, 1, function(row) 
-  function(x, h){
-     s <- pmax(x - h, 0)
-     s * exp(row[["r"]] * (1 - s / row[["K"]]) )
-  })
-    
+K1 <- function(x, h, r = 1, K = 10){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+K2 <- function(x, h, r = 1, K = 15){
+  s <- pmax(x - h, 0)
+  s * exp(r * (1 - s / K) )
+}
+models <- lapply(list(K1, K2), function(f) fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 
-matrices <- lapply(models, function(model) 
-  appl::fisheries_matrices(states = states, actions = actions, 
-                           observed_states = states, reward_fn = reward_fn,
-                           f = model, sigma_g = sigma_g, sigma_m = sigma_m))
-
+## Potentially intensive step
+alphas <- sarsop_plus(models, discount, precision = 1)
 ```
 
-PLUS expects a list of Transition matrices and a separate list of Observation matrices. The reward matrix is the same for all models.
 
+
+
+Alternately, we could import parameters from log
 
 ```{r}
-T <- lapply(matrices, `[[`, "transition")
-O <- lapply(matrices, `[[`, "observation")
-reward <- matrices[[1]][["reward"]] # same for all models
+log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
+meta <- appl::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10, 15)), log_dir)[1:2,]
+meta
+setup <- meta[1,]
+states <- 0:(setup$n_states - 1)
+actions <- states
+obs <- states
+sigma_g <- setup$sigma_g
+sigma_m <- setup$sigma_m
+reward_fn <- function(x,h) pmin(x,h)
+discount <- setup$discount 
+models <- models_from_log(meta, reward_fn)
+alphas <- alphas_from_log(meta, log_dir)
 ```
 
 
-## Applying to example data
+
+
+## Planning solution
+
+We can compare results for a different priors over states.  For simplicity of interpretation, we assume the model is known to be model 2 (model prior `(0,1)`)
+As expected, the policy is much more conservative when prior belief is lower!  
 
 ```{r}
-tuna <- read.csv("data/atlantic_bluefin.csv")
-y = round(10 * tuna$biomass / max(tuna$biomass))
-a = ceiling(10 * tuna$catch / max(tuna$biomass)) + 1
+low <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,4,1])
+ave <-  compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,10,1])
+unif <- compute_plus_policy(alphas, models, c(0, 1))
+high <- compute_plus_policy(alphas, models, c(0, 1), models[[2]]$observation[,15,1])
+df <- dplyr::bind_rows(low, ave, unif, high, .id = "prior")
+
+
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
+
 ```
 
 
+Use alphas to compute policy given model priors, for comparison:
 
 ```{r}
-system.time(
-plus_results <- plus_seq(list(T, O, reward, discount), 
-                     seq = seq,
-                     Num_sim = 100, # Number of simulations to do 
-                     n_sample = 16, # Subsample from the model list, if many models are present
-                     initial = array(1, dim = length(states)) / length(states), # initial states prior, uniform 
-                     precision = 1)
-)
+compare_policies <- function(alphas, models){
+  low <-  compute_plus_policy(alphas, models, c(1, 0))
+  unif <- compute_plus_policy(alphas, models, c(1/2, 1/2))
+  high <- compute_plus_policy(alphas, models, c(0, 1))
+  dplyr::bind_rows(low, unif, high, .id = "prior")
+}
+
+df <- compare_policies(alphas, models)
+ggplot(df, aes(states[state], states[state] - actions[policy], col = prior, pch = prior)) + 
+  geom_point(alpha = 0.5, size = 3) + 
+  geom_line()
 
 ```
-
-
-## Comparing to the correct model
-
-
-Run PLUS:
-
 
 ```{r}
-system.time(
-plus_results <- plus(list(T, O, reward, discount), 
-                     t = 100,      # Number of timesteps to run into the future
-                     Num_sim = 20, # Number of simulations to do 
-                     n_true = 3,   # Which index in the list represents the true model
-                     n_sample = 16, # Subsample from the model list, if many models are present
-                     initial = array(1, dim = length(states)) / length(states), # initial states prior, uniform 
-                     P = (array(1,dim = length(models))/ length(models)),  # Model prior, uniform
-                     precision = 1)
-)
+set.seed(123)
+out <- sim_plus(models = models, discount = discount,
+                x0 = 20, a0 = 1, Tmax = 100, 
+                true_model = models[[2]], 
+                alphas = alphas)
+
+
+out$df %>% 
+  dplyr::select(-value) %>% 
+  tidyr::gather(variable, stock, -time) %>% 
+  ggplot(aes(time, stock, color = variable)) + geom_line()  + geom_point()
 ```
 
-
+Evolution of the belief state:
 
 ```{r}
-## extract results to separate objects for convenience
-df <- plus_results[["df"]]
-posterior <- plus_results[["posterior"]]
+Tmax <-length(out$state_posterior[,1])
+out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
+  dplyr::mutate(state = as.numeric(state)) %>% 
+  ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
 ```
 
-Have we converged to the correct model?
+Final 20 belief states continue to move around:
 
 ```{r}
-tail(posterior)
+Tmax <-length(out$state_posterior[,1])
+out$state_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(state, probability, -time, factor_key =TRUE) %>% 
+  dplyr::mutate(state = as.numeric(state)) %>% 
+  dplyr::filter(time > 80) %>% 
+  ggplot(aes(state, probability, group = time, alpha = time)) + geom_line()
 ```
 
 
-The data.frame `df` returns information about the simulations for both the true and learned `plus` models, allowing us to compare them. Here we compare the rewards garnered from the true and `plus` model over time, summarizing across the replicate simulations. 
+
+Model posterior converges more quickly to the true model (examining first 15 probabilities already shows model 2 probability nearly 1)
 
 ```{r}
-df %>% 
-  select(time, sim, true_reward, plus_reward) %>%
-  gather(model, value, -time, -sim) %>%
-  ggplot(aes(time, value, group = model)) + 
-    stat_summary(aes(color = model), geom="line", fun.y = mean, lwd = 1) +
-    stat_summary(geom="ribbon", fun.data = mean_se, alpha = 0.1)
+out$model_posterior %>% data.frame(time = 1:Tmax) %>% 
+  tidyr::gather(model, probability, -time, factor_key =TRUE) %>% 
+  dplyr::filter(time < 50) %>% 
+  ggplot(aes(model, probability, group = time, alpha = time)) + geom_point()
 ```
-
-
-We can also compute the KL diveregnce to show the rate of learning:
-
-
-```{r}
-# delta function for true model distribution
-h_star = array(0,dim = length(models)) 
-h_star[n_true] = 1
-
-## Fn for the base-2 KL divergence from true model, in a friendly format
-kl2 <- function(value) seewave::kl.dist(value, h_star, base = 2)[[2]]
-
-## Compute KL over models
-P <- posterior %>% 
-  gather(model, value, -time, -sim) %>%
-  group_by(time, sim) %>% 
-  summarise(kl = kl2(value))
-
-## plot mean/se of KL over replicates
-ggplot(P, aes(time, kl)) + 
-    stat_summary(geom="line", fun.y = mean, lwd = 1) +
-    stat_summary(geom="ribbon", fun.data = mean_se, alpha = 0.1)
-
-```
-
-
-
-
