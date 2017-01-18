@@ -1,6 +1,7 @@
-build:
-  image: cboettig/2016
-  commands:
-    - R -e "devtools::install_github('boettiger-lab/mdplearning')"
-    - R -e "devtools::install_github('cboettig/appl@cboettig')"
-    - R -e 'x <- devtools::check(); testthat::expect_length(x$errors, 0); testthat::expect_length(x$warnings, 0)'
+pipeline:
+  build:
+    image: cboettig/2016
+    commands:
+      - R -e "devtools::install_github('boettiger-lab/mdplearning')"
+      - R -e "devtools::install_github('cboettig/appl@cboettig')"
+      - R -e 'x <- devtools::check(); testthat::expect_length(x$errors, 0); testthat::expect_length(x$warnings, 0)'
