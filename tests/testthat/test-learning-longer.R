@@ -6,12 +6,13 @@ states <- 0:20
 actions <- states
 obs <- states
 reward_fn <- function(x,h) pmin(x,h)
+discount = 0.95
 
 ## parameters we will learn
 vars <- expand.grid(K = seq(8, 16, by = 2))
 
 ## Bind this to a data.frame listing each of the fixed parameters across all runs
-fixed <- data.frame( r = 1, sigma_g = 0.1, sigma_m = 0.1, discount = 0.95, precision = 0.1)
+fixed <- data.frame( r = 1, sigma_g = 0.1, sigma_m = 0.1, precision = 0.1)
 pars <- data.frame(vars, fixed)
 
 ## Create the models
@@ -24,7 +25,7 @@ models <- lapply(1:dim(pars)[1], function(i){
 })
 
 alphas <- sarsop_plus(models,
-                      discount = pars[1, "discount"],
+                      discount = discount,
                       precision = pars[1, "precision"],
                       log_data = pars)
 
