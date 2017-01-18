@@ -14,7 +14,7 @@ compute_plus_policy(alphas, models, model_prior = NULL, state_prior = NULL,
 
 \item{model_prior}{Prior belief assigned to each model. uniform by default.}
 
-\item{state_prior}{Prior belief that system is in state x_i before simulation starts}
+\item{state_prior}{Prior belief that system is in state x_i and model m_i}
 
 \item{a0}{initial action (used to make the first observation, only relevant if observation depends on action)}
 }

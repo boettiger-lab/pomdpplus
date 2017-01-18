@@ -5,8 +5,7 @@
 \title{sim_plus}
 \usage{
 sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
-  a0 = 1, Tmax, true_model, alphas = NULL, model_names = NULL,
-  state_names = NULL, ...)
+  a0 = 1, Tmax, true_model, alphas = NULL, model_names = NULL, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}
@@ -15,7 +14,7 @@ sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
 
 \item{model_prior}{Prior belief assigned to each model. uniform by default.}
 
-\item{state_prior}{Prior belief that system is in state x_i before simulation starts}
+\item{state_prior}{Prior belief that system is in state x_i and model m_i}
 
 \item{x0}{starting state of the system}
 
@@ -28,8 +27,6 @@ sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
 \item{alphas}{the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.}
 
 \item{model_names}{vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.}
-
-\item{state_names}{vector of identifying names for each state.  If none are provided, state posterior columns will be named V1, V2, etc.}
 
 \item{...}{additional options to appl::sarsop, if alphas are not provided}
 }
@@ -45,9 +42,9 @@ sim_plus
 \examples{
 \dontrun{
 source(system.file("examples/K_models.R", package="pomdpplus"))
-alphas <- sarsop_plus(models, discount, precision = 1)
+alphas <- sarsop_plus(models, discount, precision = .1)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 10,
+                x0 = 6, a0 = 1, Tmax = 10,
                 true_model = models[[2]], alphas = alphas)
 }
 

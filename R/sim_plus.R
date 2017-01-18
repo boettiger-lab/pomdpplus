@@ -12,7 +12,6 @@
 #' @param true_model a list of the transition matrix, observation matrix, and reward matrix used to simulate draws.
 #' @param alphas the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.
 #' @param model_names vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.
-#' @param state_names vector of identifying names for each state.  If none are provided, state posterior columns will be named V1, V2, etc.
 #' @param ... additional options to appl::sarsop, if alphas are not provided
 #'
 #' @return a list with elements
@@ -41,7 +40,8 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   n_obs <- dim(models[[1]][["observation"]])[2]
   n_models <- length(models)
   value <- obs <- action <- state <- numeric(Tmax+1)
-  posterior <- array(NA, dim = c(n_models, n_states, Tmax+1))
+  state_posterior <- array(NA, dim = c(Tmax+1, n_models, n_states))
+  model_posterior <- array(NA, dim = c(Tmax+1, n_models))
 
 
   ## Defaults if not provided
@@ -53,7 +53,8 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   ## Assign starting values
   state[2] <- x0
   action[1] <- a0  # only relevant if action influences observation process
-  state_posterior[,,2] <- state_prior
+  state_posterior[2,,] <- state_prior
+  model_posterior[2,] <- model_prior
 
   ## If alphas are not provided, assume we are running pomdpsol each time
   if(is.null(alphas)){
@@ -66,10 +67,10 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
   ## Forward simulation, updating belief
   for(t in 2:Tmax){
     ## In theory, alphas should always be updated based on the new belief in states, but in practice the same alpha vectors can be used
-    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[,,t], ...)
+    if(update_alphas) alphas <- sarsop_plus(models, discount, state_posterior[t,,], ...)
 
     ## Get the policy corresponding to each possible observation, given the current beliefs
-    policy <- compute_plus_policy(alphas, models, model_posterior[,t], state_posterior[,,t], action[t-1])
+    policy <- compute_plus_policy(alphas, models, model_posterior[t,], state_posterior[t,,], action[t-1])
 
     ## Update system using random samples from the observation & transition distributions:
     obs[t] <- sample(1:n_obs, 1, prob = true_model$observation[state[t], , action[t-1]])
@@ -77,16 +78,16 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
     value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
 
-    posterior_model[,t+1] <- update_model_belief(state_posterior[,,t], models, obs[t], action[t-1], posterior_model[,t])
-    state_posterior[,,t+1] <- update_state_belief(state_posterior[,,t], models, obs[t], action[t-1])
+    model_posterior[t+1,] <- update_model_belief(state_posterior[t,,], models, obs[t], action[t-1], model_posterior[t,])
+    state_posterior[t+1,,] <- update_state_belief(state_posterior[t,,], models, obs[t], action[t-1])
   }
 
   ## assemble data frame without dummy year for starting action
   df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
 
   list(df = df,
-       model_posterior = as.data.frame(model_posterior[,-1]),
-       state_posterior = state_posterior[,,-1])
+       model_posterior = as.data.frame(model_posterior[-1,]),
+       state_posterior = state_posterior[-1,,])
 }
 
 normalize <- function(x){
@@ -97,7 +98,8 @@ normalize <- function(x){
 
 update_state_belief <- function(posterior, models, z0, a0){
   posterior <- vapply(1:length(models), function(i){
-     normalize( state_belief %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
+    state_belief <- t(normalize(posterior[i,]))
+    normalize( state_belief %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
   }, numeric(dim(posterior)[[2]]) )
   t(posterior)
 }
@@ -107,7 +109,7 @@ update_model_belief <- function(posterior, models, z0, a0, model_belief){
   model_posterior <- vapply(1:length(models), function(i){
     state_belief <- t(normalize(posterior[i,]))
     (state_belief %*% models[[i]]$transition[, , a0]) %*% models[[i]]$observation[, z0, a0] * model_belief[i]
-  }, numeric(dim(posterior)[[1]]) )
+  }, numeric(1) )
 
   normalize(model_posterior)
 }

@@ -5,7 +5,7 @@
 \title{compare_plus}
 \usage{
 compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
-  action, alphas = NULL, model_names = NULL, state_names = NULL, ...)
+  action, alphas = NULL, model_names = NULL, ...)
 }
 \arguments{
 \item{models}{a list of lists, each of which gives the transition matrix, observation matrix and reward matrix for the model considered}
@@ -14,7 +14,7 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 
 \item{model_prior}{Prior belief assigned to each model. uniform by default.}
 
-\item{state_prior}{Prior belief that system is in state x_i before simulation starts}
+\item{state_prior}{Prior belief that system is in state x_i and model m_i}
 
 \item{obs}{vector of historical observations. Must use index value of (discrete) observation}
 
@@ -23,8 +23,6 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 \item{alphas}{the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.}
 
 \item{model_names}{vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.}
-
-\item{state_names}{vector of identifying names for each state.  If none are provided, state posterior columns will be named V1, V2, etc.}
 
 \item{...}{additional options to appl::sarsop, if alphas are not provided}
 }

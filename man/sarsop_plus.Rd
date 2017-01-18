@@ -12,7 +12,7 @@ sarsop_plus(models, discount, state_prior = NULL, mc.cores = 1L,
 
 \item{discount}{discount rate}
 
-\item{state_prior}{Prior belief that system is in state x_i before simulation starts}
+\item{state_prior}{Prior belief that system is in state x_i and model m_i}
 
 \item{mc.cores}{number of parallel cores to use}
 
