@@ -27,6 +27,9 @@ alphas <- sarsop_plus(models, discount, precision = .1)
 unif <- compute_plus_policy(alphas, models)
 testthat::expect_is(unif, "data.frame")
 
+## library(tidyverse)
+## ggplot(unif, aes(state, policy)) + geom_line()
+
 out <- sim_plus(models = models, discount = discount,
                 x0 = 5, a0 = 1, Tmax = 20,
                 true_model = models[[2]],
