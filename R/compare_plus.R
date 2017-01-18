@@ -34,27 +34,26 @@ compare_plus <- function(models, discount, model_prior = NULL, state_prior = NUL
   optimal <- numeric(Tmax)
   optimal[1] <- NA
   model_posterior <- array(NA, dim = c(Tmax, n_models))
-  state_posterior <- array(NA, dim = c(Tmax, n_states))
+  state_posterior <- array(NA, dim = c(Tmax, n_states, n_models))
   ## Defaults if not provided
   if(is.null(state_prior))  state_prior <- rep(1, n_states) / n_states
   if(is.null(model_prior))  model_prior <- rep(1, n_models) / n_models
   ## Assign starting values
   model_posterior[1,] <- model_prior
-  state_posterior[1,] <- state_prior
+  state_posterior[1,,] <- vapply(1:n_models, function(i) state_prior, numeric(n_states))
 
   ## Forward iteration, updating belief
   for(t in 2:Tmax){
-    policy <- compute_plus_policy(alphas, models, model_posterior[t-1,], state_posterior[t-1,], action[t-1])
+    policy <- compute_plus_policy(alphas, models, model_posterior[t-1,], state_posterior[t-1,,], action[t-1])
     optimal[t] <- policy$policy[obs[t]]
-    model_posterior[t,] <- update_model_belief(state_posterior[t-1,], model_posterior[t-1,], models, obs[t], action[t-1])
-    state_posterior[t,] <- update_state_belief(state_posterior[t-1,], model_posterior[t-1,], models, obs[t], action[t-1])
+    model_posterior[t,] <- update_model_belief(model_posterior[t-1,], state_posterior[t-1,,], models, obs[t], action[t-1])
+    state_posterior[t,,] <- update_state_belief(model_posterior[t-1,], state_posterior[t-1,,], models, obs[t], action[t-1])
   }
   ## assemble data frame without dummy year for starting action
 
 
   df = data.frame(time = 1:Tmax, obs, action, optimal)
   model_posterior = as.data.frame(model_posterior)
-  state_posterior = as.data.frame(state_posterior)
 
   if(!any(is.null(model_names)))
     names(model_posterior) <- model_names
@@ -67,37 +66,6 @@ compare_plus <- function(models, discount, model_prior = NULL, state_prior = NUL
   list(df = df,
        model_posterior = model_posterior,
        state_posterior = state_posterior)
-
-}
-
-
-update_model_belief <-  function(state_prior, model_prior, models, observation, action){
-  belief <-
-    model_prior *
-    vapply(models, function(m){
-
-      state_prior %*%
-        m$transition[, , action] %*%
-        m$observation[, observation, action]
-
-    }, numeric(1))
-  belief / sum(belief)
-}
-
-update_state_belief <- function(state_prior, model_prior, models, observation, action){
-  belief <-
-    vapply(1:length(state_prior), function(i){ sum(    ## belief for each state, p_{t+1}(x_{t+1})
-      vapply(1:length(models), function(k){ ## average over models
-
-        model_prior[k] *
-          state_prior %*%
-          models[[k]]$transition[, i, action] *
-          models[[k]]$observation[i, observation, action]
-
-      }, numeric(1)))
-    }, numeric(1))
-
-  belief / sum(belief)
 
 }
 

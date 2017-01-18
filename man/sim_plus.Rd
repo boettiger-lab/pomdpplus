@@ -37,7 +37,7 @@ sim_plus(models, discount, model_prior = NULL, state_prior = NULL, x0,
 a list with elements
 (1) \code{df} a data.frame with the time, state, observation, action, and value at each timestep,
 (2) \code{model_posterior}, a data.frame of Tmax rows by n_models columns giving the evolution of the belief over models, and
-(3) \code{state_posterior}, a data.frame of Tmax rows by n_states columns giving the evolution of the belief over states
+(3) \code{state_posterior}, an array of Tmax rows by n_states by n_models columns giving the evolution of the belief over states
 }
 \description{
 sim_plus
