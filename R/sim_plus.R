@@ -98,8 +98,8 @@ normalize <- function(x){
 
 update_state_belief <- function(posterior, models, z0, a0){
   posterior <- vapply(1:length(models), function(i){
-    state_belief <- t(normalize(posterior[i,]))
-    normalize( state_belief %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
+    #state_belief <- t(normalize(posterior[i,]))
+    normalize( posterior[i,] %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
   }, numeric(dim(posterior)[[2]]) )
   t(posterior)
 }
