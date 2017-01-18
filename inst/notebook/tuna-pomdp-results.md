@@ -347,11 +347,14 @@ Note also that forecasts start with the prior belief over states and prior belie
 
 
 ```r
+## Need to average over model
+state_prior = rowSums(plus_hindcast$state_posterior[length(y),, ])
+
 plus_forecast <- 
 parallel::mclapply(1:reps, function(i) 
                sim_plus(models = models, discount = discount,
                         model_prior = as.numeric(plus_hindcast$model_posterior[length(y), ]),
-                        state_prior = as.numeric(plus_hindcast$state_posterior[length(y), ]),
+                        #state_prior = as.numeric(),
                         x0 = x0, Tmax = Tmax, true_model = models[[true_i]], alphas = alphas), 
                mc.cores = mc.cores)
 ```
