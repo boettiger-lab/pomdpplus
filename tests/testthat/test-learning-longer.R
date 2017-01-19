@@ -1,18 +1,17 @@
 library("appl")
 library("pomdpplus")
-
+set.seed(123)
 ## Problem definition
-states <- 0:20
+states <- seq(0,1, length.out = 20)
 actions <- states
 obs <- states
 reward_fn <- function(x,h) pmin(x,h)
 discount = 0.95
 
 ## parameters we will learn
-vars <- expand.grid(K = seq(8, 16, by = 2))
-
+vars <- expand.grid(K = seq(.2, .8, length = 4))
 ## Bind this to a data.frame listing each of the fixed parameters across all runs
-fixed <- data.frame( r = 1, sigma_g = 0.1, sigma_m = 0.1, precision = 0.1)
+fixed <- data.frame( r = 1, sigma_g = 0.2, sigma_m = 0.2, timeout = 100)
 pars <- data.frame(vars, fixed)
 
 ## Create the models
@@ -24,47 +23,51 @@ models <- lapply(1:dim(pars)[1], function(i){
                            sigma_m  = pars[i, "sigma_m"])
 })
 
+## consider logging and saving these for reference in tests
 alphas <- sarsop_plus(models,
                       discount = discount,
-                      precision = pars[1, "precision"],
-                      log_data = pars)
+                      timeout = pars[1, "timeout"],
+                      log_data = pars, mc.cores = parallel::detectCores())
 
 
 unif <- compute_plus_policy(alphas, models)
 testthat::expect_is(unif, "data.frame")
-
-
 ## library(tidyverse)
 ## ggplot(unif, aes(state, policy)) + geom_line()
 
-true_i <- 2
+
+true_i <- 1
+Tmax <- 20
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 10,
+                x0 = 5, a0 = 1, Tmax = Tmax,
                 true_model = models[[true_i]],
                 alphas = alphas)
 
 testthat::test_that("plus prefers the true model after learning period", {
-  testthat::expect_gt(out$model_posterior[10,true_i], out$model_posterior[10,1])
+  testthat::expect_equal(which.max(out$model_posterior[Tmax,]), true_i)
+})
+
+true_i <- 2
+out <- sim_plus(models = models, discount = discount,
+                x0 = 5, a0 = 1, Tmax = Tmax,
+                true_model = models[[true_i]],
+                alphas = alphas)
+testthat::test_that("plus prefers the true model after learning period", {
+  testthat::expect_equal(which.max(out$model_posterior[Tmax,]), true_i)
 })
 
 
 true_i <- 3
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 10,
+                x0 = 5, a0 = 1, Tmax = Tmax,
                 true_model = models[[true_i]],
                 alphas = alphas)
 testthat::test_that("plus prefers the true model after learning period", {
-  testthat::expect_gt(out$model_posterior[10,true_i], out$model_posterior[10,1])
+  testthat::expect_equal(which.max(out$model_posterior[Tmax,]), true_i)
 })
 
-
-true_i <- 4
+set.seed(123)
 out <- sim_plus(models = models, discount = discount,
-                x0 = 5, a0 = 1, Tmax = 10,
+                x0 = 5, a0 = 1, Tmax = Tmax,
                 true_model = models[[true_i]],
                 alphas = alphas)
-testthat::test_that("plus prefers the true model after learning period", {
-  testthat::expect_gt(out$model_posterior[10,true_i], out$model_posterior[10,1])
-})
-
-
