@@ -47,8 +47,8 @@ compare_plus <- function(models, discount, model_prior = NULL, state_prior = NUL
   for(t in 2:Tmax){
     policy <- compute_plus_policy(alphas, models, model_posterior[t-1,], state_posterior[t-1,,], action[t-1])
     optimal[t] <- policy$policy[obs[t]]
-    model_posterior[t,] <- update_model_belief(state_posterior[t-1,,], models, obs[t], action[t-1], model_posterior[t-1,])
-    state_posterior[t,,] <- update_state_belief(state_posterior[t-1,,], models, obs[t], action[t-1])
+    model_posterior[t,] <- update_model_belief(state_posterior[t-1,,], model_posterior[t-1,], models, obs[t], action[t-1])
+    state_posterior[t,,] <- update_state_belief(state_posterior[t-1,,], model_posterior[t-1,], models, obs[t], action[t-1])
   }
   ## assemble data frame without dummy year for starting action
 
