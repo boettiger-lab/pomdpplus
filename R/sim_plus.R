@@ -102,7 +102,7 @@ update_state_belief <- function(state_prior, model_prior, models, observation, a
   belief = array(0, dim = c(length(models), dim(models[[1]]$transition)[1]))
 
   for(i in 1:length(models)){
-    b = zeros((length(action)+1),dim(models[[1]]$transition)[1])
+    b = array(0, dim= c((length(action)+1),dim(models[[1]]$transition)[1]))
     b[1,] = state_prior[i,]
     for(j in 1:length(action)){
       b[j+1,] = (b[j,] %*% models[[i]]$transition[,,action[j]]*t(models[[i]]$observation[,observation[j],action[j]]))
