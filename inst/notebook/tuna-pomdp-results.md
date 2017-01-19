@@ -7,6 +7,13 @@ library("mdplearning")
 library("appl")
 library("pomdpplus")
 library("tidyverse")
+```
+
+```
+## Warning: package 'ggplot2' was built under R version 3.3.2
+```
+
+```r
 library("seewave") ## For KL divergence only
 
 knitr::opts_chunk$set(cache = FALSE, message=FALSE)
@@ -19,14 +26,7 @@ Identify available solutions in the log that match the desired parameters
 ```r
 log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/tuna-100"
 meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir) %>% arrange(r)
-```
 
-```
-## Warning: failed to assign NativeSymbolInfo for env since env is already
-## defined in the 'lazyeval' namespace
-```
-
-```r
 # drop repeated values
 meta <- meta[-c(4,9),]
 meta
@@ -396,14 +396,6 @@ ggplot(aes(time, stock)) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
   facet_wrap(~variable, ncol = 1, scales = "free_y")
-```
-
-```
-## Warning: Computation failed in `stat_summary()`:
-## Hmisc package required for this function
-
-## Warning: Computation failed in `stat_summary()`:
-## Hmisc package required for this function
 ```
 
 ![](tuna-pomdp-results_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
