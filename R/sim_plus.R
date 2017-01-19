@@ -78,40 +78,53 @@ sim_plus <- function(models, discount, model_prior = NULL, state_prior = NULL,
     value[t] <- true_model$reward[state[t], action[t]] * discount^(t-1)
     state[t+1] <- sample(1:n_states, 1, prob = true_model$transition[state[t], , action[t]])
 
-    model_posterior[t+1,] <- update_model_belief(state_posterior[t,,], models, obs[t], action[t-1], model_posterior[t,])
-    state_posterior[t+1,,] <- update_state_belief(state_posterior[t,,], models, obs[t], action[t-1])
+    model_posterior[t+1,] <- update_model_belief(state_posterior[t,,], model_posterior[t,], models, obs[t], action[t-1])
+    state_posterior[t+1,,] <- update_state_belief(state_posterior[t,,], model_posterior[t,], models, obs[t], action[t-1])
   }
 
   ## assemble data frame without dummy year for starting action
   df <- data.frame(time = 0:Tmax, state, obs, action, value)[2:Tmax,]
 
   list(df = df,
-       model_posterior = as.data.frame(model_posterior[-1,]),
-       state_posterior = state_posterior[-1,,])
+       model_posterior = model_posterior,
+       state_posterior = state_posterior)
 }
 
 normalize <- function(x){
-  s <- sum(x)
-  x / (s + (s == 0))
+  #s <- sum(x)
+  #x / (s + (s == 0))
+  x / sum(x)
 }
 
 
-update_state_belief <- function(posterior, models, z0, a0){
-  posterior <- vapply(1:length(models), function(i){
-    #state_belief <- t(normalize(posterior[i,]))
-    normalize( posterior[i,] %*% models[[i]]$transition[, , a0] * models[[i]]$observation[, z0, a0] )
-  }, numeric(dim(posterior)[[2]]) )
-  t(posterior)
+update_state_belief <- function(state_prior, model_prior, models, observation, action){
+
+  belief = array(0, dim = c(length(models), dim(models[[1]]$transition)[1]))
+
+  for(i in 1:length(models)){
+    b = zeros((length(action)+1),dim(models[[1]]$transition)[1])
+    b[1,] = state_prior[i,]
+    for(j in 1:length(action)){
+      b[j+1,] = (b[j,] %*% models[[i]]$transition[,,action[j]]*t(models[[i]]$observation[,observation[j],action[j]]))
+      b[j+1,] = b[j+1,] / sum(b[j+1,])
+    }
+    belief[i,] = b[length(action)+1,]
+  }
+  belief
 }
 
 
-update_model_belief <- function(posterior, models, z0, a0, model_belief){
-  model_posterior <- vapply(1:length(models), function(i){
-    state_belief <- t(normalize(posterior[i,]))
-    (state_belief %*% models[[i]]$transition[, , a0]) %*% models[[i]]$observation[, z0, a0] * model_belief[i]
-  }, numeric(1) )
 
-  normalize(model_posterior)
+
+update_model_belief <-  function(state_prior, model_prior, models, observation, action){
+  ss = array(0, dim = length(models))
+  for(k in 1:length(models)){
+    ss[k] = state_prior[k,] %*%
+      models[[k]]$transition[, , action] %*%
+      models[[k]]$observation[, observation, action]
+  }
+  belief = model_prior * ss
+  belief / sum(belief)
 }
 
 

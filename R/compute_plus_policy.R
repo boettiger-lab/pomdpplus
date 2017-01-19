@@ -31,10 +31,12 @@ compute_plus_policy <- function(alphas, models, model_prior = NULL, state_prior 
     ## belief[k,i] is belief system is in state k given observed state i
     belief <- vapply(1:n_obs,
                      function(i){
-                       normalize(state_prior[j,] %*% m$transition[, , a0] * m$observation[, i, a0])
+                       b <- state_prior[j,] %*% m$transition[, , a0] * t(m$observation[, i, a0])
+                       if(sum(b) == 0) numeric(n_states) ## observed state i is impossible
+                       else b / sum(b)
                      },
-                     numeric(n_states)) #vapply return size
-    V <- t(belief) %*% alphas[[j]]$vectors
+                     numeric(n_states))
+    V <- t(belief) %*% alphas[[j]]$vectors  * model_prior[j]
     EV <- EV + regularize_V(V, alphas[[j]]$action, n_actions)
   }
 
