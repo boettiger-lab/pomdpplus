@@ -243,6 +243,7 @@ plus_hindcast <- compare_plus(models = models, discount = discount,
 
 ```r
 mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
+names(mdp_hindcast$posterior) = names(plus_hindcast$model_posterior)
 ```
 
 
@@ -395,6 +396,14 @@ ggplot(aes(time, stock)) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
   stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
   facet_wrap(~variable, ncol = 1, scales = "free_y")
+```
+
+```
+## Warning: Computation failed in `stat_summary()`:
+## Hmisc package required for this function
+
+## Warning: Computation failed in `stat_summary()`:
+## Hmisc package required for this function
 ```
 
 ![](tuna-pomdp-results_files/figure-html/unnamed-chunk-21-1.png)<!-- -->

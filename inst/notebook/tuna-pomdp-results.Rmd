@@ -181,6 +181,7 @@ plus_hindcast <- compare_plus(models = models, discount = discount,
 
 ```{r}
 mdp_hindcast <- mdp_historical(transitions, reward, discount, state = y, action = a)
+names(mdp_hindcast$posterior) = names(plus_hindcast$model_posterior)
 ```
 
 ```{r}
