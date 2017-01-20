@@ -67,7 +67,11 @@ testthat::test_that("plus prefers the true model after learning period", {
 })
 
 set.seed(123)
-out <- sim_plus(models = models, discount = discount,
+mine <- sim_plus(models = models, discount = discount,
                 x0 = 5, a0 = 1, Tmax = Tmax,
                 true_model = models[[true_i]],
                 alphas = alphas)
+
+load("test.rda")
+milad <- mine
+testthat::expect_identical(mine, milad)
