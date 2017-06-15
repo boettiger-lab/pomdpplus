@@ -24,7 +24,7 @@ compare_plus(models, discount, model_prior = NULL, state_prior = NULL, obs,
 
 \item{model_names}{vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.}
 
-\item{...}{additional options to appl::sarsop, if alphas are not provided}
+\item{...}{additional options to sarsop::sarsop, if alphas are not provided}
 }
 \value{
 a list with elements
@@ -46,4 +46,3 @@ out <- compare_plus(models = models, discount = discount,
 }
 
 }
-

@@ -31,4 +31,3 @@ alphas <- sarsop_plus(models, discount, precision = 1)
 unif <- compute_plus_policy(alphas, models)
 }
 }
-
