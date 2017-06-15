@@ -12,7 +12,7 @@
 #' @param true_model a list of the transition matrix, observation matrix, and reward matrix used to simulate draws.
 #' @param alphas the alpha vectors for each model, as provided from \code{\link{sarsop_plus}}, which will otherwise be run each time if not provided.
 #' @param model_names vector of identifying names for each model. If none are provided, model posterior columns will be named V1, V2, etc.
-#' @param ... additional options to appl::sarsop, if alphas are not provided
+#' @param ... additional options to sarsop::sarsop, if alphas are not provided
 #'
 #' @return a list with elements
 #' (1) \code{df} a data.frame with the time, state, observation, action, and value at each timestep,

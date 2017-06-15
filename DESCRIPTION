@@ -13,7 +13,7 @@ Encoding: UTF-8
 Suggests:
     testthat
 Imports:
-    appl,
+    sarsop,
     stats,
     dplyr
 RoxygenNote: 5.0.1
