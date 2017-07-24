@@ -1,3 +1,6 @@
+#mc.cores <- parallel::detectCores()
+mc.cores <- 1
+
 library("sarsop")
 library("pomdpplus")
 set.seed(123)
@@ -27,7 +30,7 @@ models <- lapply(1:dim(pars)[1], function(i){
 alphas <- sarsop_plus(models,
                       discount = discount,
                       timeout = pars[1, "timeout"],
-                      log_data = pars, mc.cores = parallel::detectCores())
+                      log_data = pars, mc.cores = mc.cores)
 
 
 unif <- compute_plus_policy(alphas, models)
