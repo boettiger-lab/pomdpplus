@@ -1,4 +1,4 @@
-library("appl")
+library("sarsop")
 library("pomdpplus")
 set.seed(123)
 ## Problem definition
@@ -16,8 +16,8 @@ pars <- data.frame(vars, fixed)
 
 ## Create the models
 models <- lapply(1:dim(pars)[1], function(i){
-  f <- appl:::ricker(pars[i, "r"], pars[i, "K"])
-  appl::fisheries_matrices(states, actions, obs,
+  f <- sarsop:::ricker(pars[i, "r"], pars[i, "K"])
+  fisheries_matrices(states, actions, obs,
                            reward_fn, f = f,
                            sigma_g = pars[i, "sigma_g"],
                            sigma_m  = pars[i, "sigma_m"])

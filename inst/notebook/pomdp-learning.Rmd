@@ -8,7 +8,7 @@ output:
 
 
 ```{r}
-library("appl")
+library("sarsop")
 library("pomdpplus")
 library("ggplot2")
 library("tidyr")
@@ -53,7 +53,7 @@ Alternately, we could import parameters from log
 
 ```{r}
 log_dir <- "https://raw.githubusercontent.com/cboettig/pomdp-solutions-library/master/library"
-meta <- appl::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10, 15)), log_dir)[1:2,]
+meta <- sarsop::meta_from_log(data.frame(model ="ricker", r = 1, K = c(10, 15)), log_dir)[1:2,]
 meta
 setup <- meta[1,]
 states <- 0:(setup$n_states - 1)

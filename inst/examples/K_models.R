@@ -13,4 +13,5 @@ K2 <- function(x, h, r = 1, K = 10){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K) )
 }
-models <- lapply(list(K1, K2), function(f) appl::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
+models <- lapply(list(K1, K2), function(f)
+  sarsop::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))

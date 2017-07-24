@@ -9,7 +9,7 @@ output:
 
 ```{r message=FALSE}
 library("mdplearning")
-library("appl")
+library("sarsop")
 library("pomdpplus")
 
 library("ggplot2")
@@ -60,16 +60,16 @@ models <- data.frame(vars, fixed)
 for(i in 1:dim(models)[1]) {
 ## Select the model
   f <- switch(models[i, "model"], 
-    allen = appl:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
-    ricker = appl:::ricker(models[i, "r"], models[i, "K"])
+    allen = sarsop:::allen(models[i, "r"], models[i, "K"], models[i, "C"]),
+    ricker = sarsop:::ricker(models[i, "r"], models[i, "K"])
   )
 ## Determine the matrices
-  m <- appl::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
+  m <- sarsop::fisheries_matrices(states, actions, obs, reward_fn, f = f, 
                           sigma_g = models[i, "sigma_g"], sigma_m  = models[i, "sigma_m"])
 ## record data for the log
   log_data <- models
 ## run sarsop
-  alpha <- appl::sarsop(m$transition, m$observation, m$reward, 
+  alpha <- sarsop::sarsop(m$transition, m$observation, m$reward, 
                         discount = models[i, "discount"], 
                         precision = models[i, "precision"], 
                         memory = models[i, "memory"],
@@ -84,7 +84,7 @@ for(i in 1:dim(models)[1]) {
 Identify available solutions in the log that match the desired parameters
 
 ```{r}
-meta <- appl::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir)
+meta <- sarsop::meta_from_log(data.frame(model ="ricker", sigma_m = 0.3), log_dir)
 knitr::kable(meta)
 ```
 

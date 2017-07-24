@@ -1,4 +1,4 @@
-library("appl")
+library("sarsop")
 library("pomdpplus")
 ## Problem definition
 states <- 0:20
