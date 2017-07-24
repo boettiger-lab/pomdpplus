@@ -3,7 +3,7 @@
 #' @inheritParams sim_plus
 #' @param mc.cores number of parallel cores to use
 #' @param log_data a data frame with information to be logged, one row for each model. Leave NULL if not logging
-#' @importFrom appl sarsop
+#' @importFrom sarsop sarsop
 #' @return A list of alpha vector matrices
 #' @export
 #'
@@ -26,7 +26,7 @@ sarsop_plus <- function(models, discount, state_prior = NULL,
     else
       log_dat <- log_data
 
-    appl::sarsop(m$transition, m$observation, m$reward, discount, state_prior, log_data = log_dat, ...)
+    sarsop::sarsop(m$transition, m$observation, m$reward, discount, state_prior, log_data = log_dat, ...)
   }, mc.cores = mc.cores)
 
 }

@@ -14,9 +14,9 @@ Suggests:
     testthat,
     covr
 Imports:
-    appl,
+    sarsop,
     stats,
     dplyr
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Remotes:
   boettiger-lab/sarsop
