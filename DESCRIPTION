@@ -11,11 +11,12 @@ License: BSD_2_clause + file LICENSE
 LazyData: TRUE
 Encoding: UTF-8
 Suggests:
-    testthat
+    testthat,
+    covr
 Imports:
     appl,
     stats,
     dplyr
 RoxygenNote: 5.0.1
 Remotes:
-  cboettig/appl@cboettig
+  boettiger-lab/sarsop

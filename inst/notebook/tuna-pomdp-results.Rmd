@@ -187,10 +187,13 @@ names(mdp_hindcast$posterior) = names(plus_hindcast$model_posterior)
 ```{r}
 left_join(rename(plus_hindcast$df, plus = optimal, state = obs),  
           rename(mdp_hindcast$df, mdp = optimal)) %>%
-mutate("actual catch" = actions_mt[action], "estimated stock" = states_mt[state], 
-       plus = actions_mt[plus], mdp = actions_mt[mdp], time = year[time]) %>%
+  mutate("actual catch" = actions_mt[action], "estimated stock" = states_mt[state], 
+         plus = actions_mt[plus], mdp = actions_mt[mdp], time = year[time]) %>%
        select(-state, -action) %>%
-gather(variable, stock, -time) %>% 
+gather(variable, stock, -time) -> 
+  hindcast
+
+hindcast %>% 
 ggplot(aes(time, stock, color = variable)) + geom_line(lwd=1) #  + geom_point()
 ```
 
@@ -306,14 +309,32 @@ bind_rows(plus = plus_forecast %>% map_df(`[[`, "df", .id = "rep"),
 select(-value, -obs) %>% 
 mutate(state = states_mt[state], action = actions_mt[action], time = future[time]) %>% 
 bind_rows(historical) %>%
-rename("catch (MT)" = action, "stock (MT)" = state) %>%  
-gather(variable, stock, -time, -rep, -method) %>%
+rename("catch" = action, "stock" = state) %>%  
+gather(variable, stock, -time, -rep, -method) ->
+  forecast
+  
+forecast %>%  
 ggplot(aes(time, stock)) + 
-  geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
+#  geom_line(aes(group = interaction(rep,method), color = method), alpha=0.2) +
   stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
-  stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) + 
+  stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) +   
+  #geom_line(data = hindcast, mapping = aes(time, stock, color = variable)) +
   facet_wrap(~variable, ncol = 1, scales = "free_y")
+
 
 ```
 
 
+```{r}
+hindcast %>% rename(method = variable) %>% filter(method %in% c("mdp", "plus")) %>% mutate(variable = "catch", rep = "NA") -> hindcast2
+
+forecast %>% full_join(hindcast2) -> df
+
+
+df %>%  
+ggplot(aes(time, stock)) + 
+  stat_summary(aes(color = method), geom="line", fun.y = mean, lwd=1) +
+  stat_summary(aes(fill = method), geom="ribbon", fun.data = mean_sdl, fun.args = list(mult=1), alpha = 0.25) +   
+  facet_wrap(~variable, ncol = 1, scales = "free_y")
+
+```
