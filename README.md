@@ -2,6 +2,6 @@ POMDP Planning and Learning in Uncertain Systems
 ================
 Carl Boettiger and Milad Memarzadeh
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip) [![Travis-CI Build Status](https://travis-ci.org/boettiger-lab/pomdpplus.svg?branch=master)](https://travis-ci.org/boettiger-lab/pomdpplus) [![Coverage Status](https://img.shields.io/codecov/c/github/boettiger-lab/pomdpplus/master.svg)](https://codecov.io/github/boettiger-lab/pomdpplus?branch=master) [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/pomdpplus)](https://cran.r-project.org/package=pomdpplus)
 
 This package is under development as supporting material to current research papers in the group. It is not yet fully documented and supported for general use in other applications.
