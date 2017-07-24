@@ -20,11 +20,11 @@ K2 <- function(x, h){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K[2]) )
 }
-models <- lapply(list(K1,K2), function(f) appl::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
+models <- lapply(list(K1,K2), function(f) sarsop::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
 
 
-alphas <- sarsop_plus(models, discount, precision = .1)
-unif <- compute_plus_policy(alphas, models)
+alphas <- pomdpplus::sarsop_plus(models, discount, precision = .1)
+unif <- pomdpplus::compute_plus_policy(alphas, models)
 testthat::expect_is(unif, "data.frame")
 
 out <- sim_plus(models = models, discount = discount,
