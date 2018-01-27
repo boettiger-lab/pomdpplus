@@ -14,7 +14,7 @@ discount = 0.95
 ## parameters we will learn
 vars <- expand.grid(K = seq(.2, .8, length = 4))
 ## Bind this to a data.frame listing each of the fixed parameters across all runs
-fixed <- data.frame( r = 1, sigma_g = 0.2, sigma_m = 0.2, timeout = 100)
+fixed <- data.frame( r = 1, sigma_g = 0.2, sigma_m = 0.2, timeout = 100, noise = "normal")
 pars <- data.frame(vars, fixed)
 
 ## Create the models
@@ -23,7 +23,8 @@ models <- lapply(1:dim(pars)[1], function(i){
   fisheries_matrices(states, actions, obs,
                            reward_fn, f = f,
                            sigma_g = pars[i, "sigma_g"],
-                           sigma_m  = pars[i, "sigma_m"])
+                           sigma_m  = pars[i, "sigma_m"],
+                     noise = "normal")
 })
 
 ## consider logging and saving these for reference in tests
@@ -40,7 +41,7 @@ testthat::expect_is(unif, "data.frame")
 
 
 true_i <- 1
-Tmax <- 20
+Tmax <- 50
 out <- sim_plus(models = models, discount = discount,
                 x0 = 5, a0 = 1, Tmax = Tmax,
                 true_model = models[[true_i]],
@@ -75,6 +76,6 @@ mine <- sim_plus(models = models, discount = discount,
                 true_model = models[[true_i]],
                 alphas = alphas)
 
-load("test.rda")
-milad <- mine
-testthat::expect_identical(mine, milad)
+#load("test.rda")
+#milad <- mine
+#testthat::expect_identical(mine, milad)

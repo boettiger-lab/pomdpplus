@@ -20,7 +20,9 @@ K2 <- function(x, h){
   s <- pmax(x - h, 0)
   s * exp(r * (1 - s / K[2]) )
 }
-models <- lapply(list(K1,K2), function(f) sarsop::fisheries_matrices(states, actions, obs, reward_fn, f, sigma_g, sigma_m))
+models <- lapply(list(K1,K2), function(f)
+  sarsop::fisheries_matrices(states, actions, obs, reward_fn,
+                             f, sigma_g, sigma_m, noise = "normal"))
 
 
 alphas <- pomdpplus::sarsop_plus(models, discount, precision = .1)
@@ -44,7 +46,9 @@ log <- tempdir()
 ## make sure log is empty first
 lapply(list.files(log), function(x) unlink(paste(log, x, sep = "/")))
 
-log_data <- data.frame(model = "ricker", r = r, K = K, C = NA, sigma_g = sigma_g, sigma_m = sigma_m)
+log_data <- data.frame(model = "ricker", r = r, K = K, C = NA,
+                       sigma_g = sigma_g, sigma_m = sigma_m,
+                       noise = "normal")
 
 alphas <- sarsop_plus(models, discount, precision = 1,
                       log_dir = log, log_data = log_data)
